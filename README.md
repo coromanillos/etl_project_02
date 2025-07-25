@@ -16,3 +16,15 @@ This project builds and expands on the experiences from the previos repo etl_pro
 
 - Extraction from multiple APIs with fundamentally different data sets.
 - Exploration of Kubernetes, Github Actions (CI/CD)
+
+---
+
+- Use Docker/Compose to deploy Airflow, PostgreSQL, and Fluent Bit together.
+
+- Automate builds/tests via Makefile and pytest.
+
+- Track dependencies in pyproject.toml.
+
+- Centralize log routing with Fluent Bit (fluent-bit.conf, parsers.conf).
+
+- Adjust service behavior using config files like airflow.cfg.
