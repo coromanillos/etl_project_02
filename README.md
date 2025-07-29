@@ -1,6 +1,6 @@
 # ETL Pipeline Project 02
 
-This is a data pipeline project that will take the experiences from the previous ETL project and use them to explore new technologies, as well as follow efficient development practices from the start.
+This is a data pipeline project that will take the experiences from the previous ETL project and use them to explore new technologies, as well as follow efficient development practices from the start. Uees polygon.io as the REST API endpoint. 
 
 ---
 
