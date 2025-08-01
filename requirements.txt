@@ -1,0 +1,5 @@
+# requirements.txt
+
+apache-airflow==3.0.2
+apache-airflow-providers-postgres==6.2.1
+psycopg2-binary==2.9.10
