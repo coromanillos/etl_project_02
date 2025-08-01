@@ -2,7 +2,8 @@
 
 This project demonstrates a **production-grade GIS data pipeline** inspired by real-world utility operations (e.g., water, energy, urban infrastructure). It extracts, transforms, and loads open-source spatial data using cloud-compatible formats and modern orchestration with Apache Airflow.
 
-The pipeline is designed for **modular deployment** via Docker Compose and includes logging, validation, scheduling, and optional cloud exports.
+The pipeline is designed for **modular deployment** via Docker Compose and includes logging, validation, scheduling, and optional cloud exports.  
+✅ *Planned API services and spatial analysis tasks will simulate full-stack GIS engineering workflows used in enterprise settings.*
 
 ---
 
@@ -12,13 +13,14 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - [Tech Stack](#tech-stack)
 - [Pipeline Architecture](#pipeline-architecture)
 - [Key Features](#key-features)
-- [Getting Started](#getting-started)
-- [Running the Pipeline](#running-the-pipeline)
+- [Spatial API Server (Planned)](#spatial-api-server-planned)
+- [Example Spatial Analysis Tasks (Planned)](#example-spatial-analysis-tasks-planned)
 - [Testing](#testing)
-- [Mocked/Proprietary Replacements](#mockedproprietary-replacements)
+- [Mocked / Proprietary Replacements](#mocked--proprietary-replacements)
 - [Future Enhancements](#future-enhancements)
 - [Example Data Sources](#example-data-sources)
-
+- [Getting Started](#getting-started)
+- [Running the Pipeline](#running-the-pipeline)
 
 ---
 
@@ -28,6 +30,9 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - Handle open geospatial data in modern formats (GeoJSON, Shapefile, Parquet)
 - Replace proprietary ArcGIS tools with open-source equivalents
 - Serve as a learning sandbox for spatial processing, cloud integration, and orchestration
+- ✅ Simulate enterprise-level REST APIs for geospatial data querying
+- ✅ Demonstrate basic spatial modeling (joins, buffers, proximity analysis)
+- ✅ Practice object-oriented design in Python data pipeline components
 
 ---
 
@@ -35,16 +40,19 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 
 | Layer               | Technology                            | Purpose                                  |
 |---------------------|----------------------------------------|------------------------------------------|
-| Language            | Python 3.10+                           | Core scripting                           |
+| Language            | Python 3.10+                           | Core scripting (OOP structured) ✅        |
 | Orchestration       | Apache Airflow                         | DAGs and scheduling                      |
 | Containerization    | Docker, Docker Compose                 | Local dev & deployment                   |
 | Spatial ETL         | GeoPandas, Shapely, Fiona, Pyproj      | Geospatial parsing & processing          |
 | Data Store          | PostgreSQL + PostGIS                   | Spatially-aware relational DB            |
+| REST API Server     | FastAPI or Flask (Planned) ✅          | Serve spatial queries via endpoints      |
+| Spatial Analysis    | Shapely, PostGIS functions ✅           | Buffers, joins, intersections, etc.      |
 | Cloud Storage       | AWS S3 (optional)                      | Data lake export                         |
 | Public APIs         | USGS, OpenStreetMap, Natural Earth     | Geo data sources                         |
 | Alerting            | Slack Webhooks (Free Tier)             | Pipeline status notifications            |
 | Testing             | pytest                                 | Unit and integration testing             |
 | Monitoring          | Airflow Logs + Slack Alerts            | Observability                            |
+| Front-End Mapping   | Leaflet.js or Folium (Planned) ✅       | Visualize output data                    |
 
 ---
 
@@ -64,6 +72,7 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 │ - CRS normalization                    │
 │ - Geometry cleanup                     │
 │ - Filtering (e.g., pipelines, roads)   │
+│ - ✅ Spatial operations (joins/buffers)│
 └────────┬───────────────────────────────┘
          ▼
 ┌────────────────────────────┐
@@ -71,31 +80,68 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 └────────┬───────────────────┘
          ▼
 ┌────────────────────────────┐
+│ REST API (FastAPI - WIP) ✅ │
+│ Serve spatial queries      │
+└────────┬───────────────────┘
+         ▼
+┌────────────────────────────┐
 │ Export to S3 as Parquet    │ (Optional)
+└────────────────────────────┘
+
 └────────────────────────────┘
 ```
 
 --- 
 
-## Key Features
+Key Features
 
-    Modular DAGs: Each stage of the ETL process is encapsulated in separate Airflow tasks for flexibility.
+    Modular Airflow DAGs for staging ETL steps
 
-    Geospatial Data Validation: Ensures valid geometries, CRS consistency, and attribute quality before loading.
+    Geospatial data validation: CRS, geometry integrity, schema
 
-    CRS Handling: Normalizes all geometries to EPSG:4326 for interoperability.
+    CRS Handling: Normalize geometries to EPSG:4326
 
-    Local & Cloud Storage: Supports both local storage for dev and optional S3 exports for production.
+    Local + optional cloud storage (S3)
 
-    Logging & Alerts: Integrated with Slack for failure alerts and Airflow for detailed DAG-level logs.
+    Logging: Airflow logs + Slack alerts
 
-    Mocked Endpoints: Included for testing pipeline stages without hitting real APIs.
+    ✅ Object-oriented Python modules used for pipeline stages
+
+    ✅ Simulated API server to access spatial datasets via REST endpoints
+
+    ✅ Support for spatial joins (e.g., pipelines near roads) and buffering tasks
+
+---
+
+## Spatial API Server (Planned)
+
+The FastAPI service (under /api/) will expose endpoints for:
+
+    /roads-near-pipelines?distance=100: returns all roads within 100 meters of pipeline features
+
+    /assets/geojson: return full feature sets in GeoJSON format for download or mapping
+
+    /metrics: returns spatial quality checks (e.g., invalid geometries, CRS mismatches)
+
+---
+
+## Example Spatial Analysis Tasks (Planned)
+
+As part of the transformation phase:
+
+    Buffer Zones: Identify assets within 100m of critical infrastructure
+
+    Spatial Joins: Merge attributes between overlapping layers (e.g., pipes + roads)
+
+    Filtering by Geometry Type: Extract only LineString or Polygon features
+
+    PostGIS Spatial Queries: Perform joins and analytics directly in SQL
 
 ---
 
 ## Testing
 
-Tests are written with pytest and include both unit and integration coverage:
+Tests are written with pytest and include both unit, integration and e2e coverage:
 
 pytest tests/
 
@@ -103,16 +149,21 @@ pytest tests/
 
     Test API fallback behavior
 
-    Integration test from extract → load using small dummy datasets
+    Integration test from extract → load using dummy data
+
+    (Planned) API response tests and spatial query validation
 
 ---
 
 ## Mocked / Proprietary Replacements
-Proprietary Tool	Open-Source Equivalent
-ArcGIS / ArcMap	GeoPandas + PostGIS
-FME Workbench	Custom Python ETL Scripts
-ESRI Feature Services	REST APIs (e.g., USGS, OSM)
-ArcGIS Online	S3 or local static hosting
+
+| Proprietary Tool      | Open-Source Equivalent               |
+| --------------------- | ------------------------------------ |
+| ArcGIS / ArcMap       | GeoPandas + PostGIS                  |
+| FME Workbench         | Custom Python ETL scripts            |
+| ESRI Feature Services | REST APIs (FastAPI)                  |
+| ArcGIS Online         | Static hosting / S3 + Leaflet        |
+| ArcPy                 | Shapely, Pyproj (Geo-alternatives)   |
 
 ---
 
@@ -120,13 +171,15 @@ ArcGIS Online	S3 or local static hosting
 
     Add support for raster layers (e.g., elevation, satellite imagery)
 
-    Integrate Mapbox or Leaflet-based front-end visualization
+    Integrate Leaflet or Folium-based web viewer for spatial outputs
 
     Add schema versioning and change tracking
 
-    Implement advanced geometry operations (e.g., buffering, spatial joins)
+    CI/CD integration for deployment (GitHub Actions or Jenkins)
 
-    CI/CD integration for pipeline testing and deployment
+    Add Dockerized FastAPI + NGINX service for live API access
+
+    Upload to AWS RDS (PostGIS) to simulate real cloud architecture
 
 ---
 
