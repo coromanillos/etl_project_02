@@ -21,6 +21,7 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - [Example Data Sources](#example-data-sources)
 - [Getting Started](#getting-started)
 - [Running the Pipeline](#running-the-pipeline)
+- [Notes](#notes)
 
 ---
 
@@ -30,9 +31,9 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - Handle open geospatial data in modern formats (GeoJSON, Shapefile, Parquet)
 - Replace proprietary ArcGIS tools with open-source equivalents
 - Serve as a learning sandbox for spatial processing, cloud integration, and orchestration
-- ✅ Simulate enterprise-level REST APIs for geospatial data querying
-- ✅ Demonstrate basic spatial modeling (joins, buffers, proximity analysis)
-- ✅ Practice object-oriented design in Python data pipeline components
+- Simulate enterprise-level REST APIs for geospatial data querying
+- Demonstrate basic spatial modeling (joins, buffers, proximity analysis)
+- Practice object-oriented design in Python data pipeline components
 
 ---
 
@@ -218,3 +219,36 @@ Once Airflow is running, trigger the DAG manually or wait for the scheduled run:
     Schedule: @daily (customizable via dags/config.py)
 
     Logs and task statuses are available in the Airflow UI
+
+---
+
+## Notes
+
+## USGS APIs (Water Infrastructure & Monitoring)
+
+The United States Geological Survey (USGS) provides water-related data through various APIs:
+
+- **Monitoring Locations API**  
+  Identifies active water monitoring stations. Useful for mapping infrastructure like pump stations and treatment plants in specific watersheds.
+
+- **Latest Continuous Values API**  
+  Provides live water condition data (e.g., streamflow, gage height). Ideal for real-time alerts on flooding, droughts, or infrastructure stress.
+
+- **Daily Values API**  
+  Delivers historical daily measurements. Supports trend analysis, regulatory reporting, and modeling seasonal or long-term changes in water behavior.
+
+- **Time Series Metadata API**  
+  Lists available data types and quality before extraction. Helps determine what data streams are available and valid for use.
+
+- **Water Quality Portal / USGS Samples API**  
+  Supplies detailed water quality sample data. Supports environmental compliance, public health evaluations, and source water analysis.
+
+- **Real-Time Flood Impacts (RTFI) API**  
+  Offers GIS-ready flood impact overlays. Useful for mapping risk zones and planning resilient infrastructure.
+
+
+- OpenStreetMap
+
+- Natural Earth
+
+---
