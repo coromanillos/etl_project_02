@@ -1,6 +1,6 @@
 ###########################################
-# Name: extract.py
+# Name: run_usgs_monitoring_locations.py
 # Author: Christopher O. Romanillos
-# Description: REST API Extraction script
-# Data: 07/27/25
+# Description: Wrapper script, entrpyoing for DAG Orchestration
+# Data: 08/02/25
 ###########################################

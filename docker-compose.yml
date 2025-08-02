@@ -1,7 +1,29 @@
+# docker-compose.yml
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  image: custom-airflow:3.0.2
+  env_file: .env
+  environment:
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__DATABASE__LOAD_DEFAULT_CONNECTIONS: 'false'
+  volumes:
+    - ./airflow/dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+  depends_on:
+    - postgres
+  networks:
+    - airflow
+
 services:
   postgres:
-    image: postgis/postgis:16-3.5
-    container_name: postgres
+    image: postgres:16
+    restart: always
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
@@ -9,74 +31,38 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - airflow_network
+      - airflow
 
-  airflow-webserver:
-    image: apache/airflow:3.0.2
-    container_name: airflow-webserver
-    restart: always
+  airflow-init:
+    <<: *airflow-common
+    entrypoint: >
+      bash -c "airflow db migrate && airflow users create 
+               --username admin 
+               --firstname Admin 
+               --lastname User 
+               --role Admin 
+               --email admin@example.com 
+               --password admin && 
+               airflow db upgrade"
     depends_on:
       - postgres
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-      - ./config:/opt/airflow/config
-      - ./data:/opt/airflow/data
+
+  airflow-webserver:
+    <<: *airflow-common
     ports:
       - "8080:8080"
     command: webserver
-    networks:
-      - airflow_network
+    depends_on:
+      - airflow-init
 
   airflow-scheduler:
-    image: apache/airflow:3.0.2
-    container_name: airflow-scheduler
-    restart: always
-    depends_on:
-      - airflow-webserver
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-      - ./config:/opt/airflow/config
-      - ./data:/opt/airflow/data
+    <<: *airflow-common
     command: scheduler
-    networks:
-      - airflow_network
-
-  airflow-init:
-    image: apache/airflow:3.0.2
-    container_name: airflow-init
     depends_on:
-      - postgres
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
-    entrypoint: >
-      /bin/bash -c "
-      airflow db migrate &&
-      airflow users create --username admin --firstname Admin --lastname User \
-        --role Admin --email admin@example.com --password admin
-      "
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./logs:/opt/airflow/logs
-      - ./plugins:/opt/airflow/plugins
-      - ./config:/opt/airflow/config
-      - ./data:/opt/airflow/data
-    networks:
-      - airflow_network
+      - airflow-init
 
 volumes:
   postgres_data:
 
 networks:
-  airflow_network:
+  airflow:
