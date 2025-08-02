@@ -252,3 +252,10 @@ The United States Geological Survey (USGS) provides water-related data through v
 - Natural Earth
 
 ---
+
+# More notes:
+    - Cloud first approach for all DAG ETL scripts (obviously) 
+    - Data should flow through memory objects (dicts, lists, ORM objects etc.)
+    - Writing should happen at the end, directly into the database
+    - This approach prevents I/O, making pipeline clean, fast and cloud native.
+---

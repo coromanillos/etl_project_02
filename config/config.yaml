@@ -1,0 +1,6 @@
+usgs:
+  monitoring_locations_url: "https://labs.waterdata.usgs.gov/api/collections/monitoring-locations/items?f=json"
+output:
+  directory: "raw_data"
+  filename_pattern: "usgs_monitoring_locations_{timestamp}.json"
+  timestamp_format: "%Y%m%d_%H%M%S"
