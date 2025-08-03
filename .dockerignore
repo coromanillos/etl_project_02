@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.env
+*.log
+logs/
+airflow/airflow.db
+airflow/airflow-webserver.pid
+airflow-unittests.cfg
+.git/
+.gitignore
+Dockerfile
+docker-compose.yml
+entrypoint.sh

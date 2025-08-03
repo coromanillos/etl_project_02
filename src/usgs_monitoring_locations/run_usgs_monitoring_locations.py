@@ -6,28 +6,28 @@
 ###########################################
 
 import logging
-import sys
-from config import load_config
-from extract_usgs_monitoring_locations import extract_usgs_monitoring_locations
+import pandas as pd
+from src.utils.config import load_config
+from src.usgs_monitoring_locations.extract_usgs_monitoring_locations import extract_usgs_monitoring_locations
+from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import parse_usgs_monitoring_locations
+from src.usgs_monitoring_locations.loading_usgs_monitoring_locations import load_data_to_postgres
 
-def main() -> None:
-    # Configure logging once here, at the top-level entrypoint
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
-        handlers=[logging.StreamHandler(sys.stdout)],
-    )
-    logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-    try:
-        config = load_config()
-        filepath = extract_usgs_monitoring_locations(config)
-        if filepath:
-            logger.info(f"Extraction completed successfully: {filepath}")
-        else:
-            logger.error("Extraction failed.")
-    except Exception as e:
-        logger.error(f"Fatal error in extraction script: {e}", exc_info=True)
+def extract_task(**kwargs) -> dict:
+    config = load_config()
+    data = extract_usgs_monitoring_locations(config)
+    if data is None:
+        raise ValueError("Extract task failed: No data returned.")
+    return data  # ✅ Serializable
 
-if __name__ == "__main__":
-    main()
+def transform_task(raw_data: dict, **kwargs) -> list[dict]:
+    df = parse_usgs_monitoring_locations(raw_data)
+    if df is None or df.empty:
+        raise ValueError("Transform task failed: No valid data.")
+    return df.to_dict(orient="records")  # ✅ JSON-serializable
+
+def load_task(records: list[dict], **kwargs):
+    df = pd.DataFrame(records)
+    load_data_to_postgres(df)
+    logger.info("Load task completed.")

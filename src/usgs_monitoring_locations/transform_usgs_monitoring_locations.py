@@ -1,7 +1,67 @@
-###########################################
+###################################################################
 # Name: transform_usgs_monitoring_locations.py
 # Author: Christopher O. Romanillos
-# Description: Transform/Clean data from USGS REST API 
-# Endpoint: monitoring_locations
-# Data: 08/02/25
-###########################################
+# Description: Transform/Flatten + Clean USGS monitoring locations raw data
+# Date: 08/03/25
+###################################################################
+
+import logging
+import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+def parse_usgs_monitoring_locations(raw_data: dict) -> pd.DataFrame | None:
+    """
+    Parse, flatten, and clean USGS monitoring locations raw GeoJSON data.
+
+    Args:
+        raw_data: dict from extract_usgs_monitoring_locations()
+
+    Returns:
+        Cleaned pandas DataFrame or None if empty/error.
+    """
+    try:
+        features = raw_data.get("features", [])
+        if not features:
+            logger.warning("No features found in raw data")
+            return None
+
+        records = []
+        for feature in features:
+            props = feature.get("properties", {}).copy()
+            props["id"] = feature.get("id")
+            records.append(props)
+
+        df = pd.DataFrame(records)
+        logger.info(f"Parsed {len(df)} raw monitoring location records")
+
+        # === Basic Cleaning Steps ===
+        # Rename columns for clarity (example, optional)
+        df.rename(columns={
+            "dec_lat_va": "latitude",
+            "dec_long_va": "longitude",
+            "alt_va": "elevation_ft",
+            "state_cd": "state_code",
+            "county_cd": "county_code",
+            "huc_cd": "huc_code",
+            "agency_cd": "agency_code",
+            "site_no": "site_number",
+            "station_nm": "station_name",
+            "inventory_dt": "inventory_date"
+        }, inplace=True)
+
+        # Convert data types
+        df["latitude"] = pd.to_numeric(df.get("latitude"), errors="coerce")
+        df["longitude"] = pd.to_numeric(df.get("longitude"), errors="coerce")
+        df["elevation_ft"] = pd.to_numeric(df.get("elevation_ft"), errors="coerce")
+        df["inventory_date"] = pd.to_datetime(df.get("inventory_date"), errors="coerce")
+
+        # Drop rows with missing essential fields
+        df.dropna(subset=["latitude", "longitude", "site_number"], inplace=True)
+
+        logger.info(f"Cleaned data to {len(df)} valid monitoring location records")
+        return df
+
+    except Exception as e:
+        logger.error(f"Error transforming USGS monitoring locations: {e}")
+        return None
