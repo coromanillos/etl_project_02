@@ -8,23 +8,24 @@
 import logging
 import pandas as pd
 from utils.serialization import serialize_df
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-def transform_usgs_monitoring_locations(raw_data: dict) -> bytes | None:
+def transform_usgs_monitoring_locations(raw_data: dict) -> Optional[bytes]:
     try:
         features = raw_data.get("features", [])
         if not features:
             logger.warning("No features found in raw data")
             return None
 
-        records = []
-        for feature in features:
-            props = feature.get("properties", {}).copy()
-            props["id"] = feature.get("id")
-            records.append(props)
+        records = [
+            {**feature.get("properties", {}), "id": feature.get("id")}
+            for feature in features
+        ]
 
         df = pd.DataFrame(records)
+
         logger.info(f"Parsed {len(df)} raw monitoring location records")
 
         df.rename(columns={
@@ -40,10 +41,10 @@ def transform_usgs_monitoring_locations(raw_data: dict) -> bytes | None:
             "inventory_dt": "inventory_date"
         }, inplace=True)
 
-        df["latitude"] = pd.to_numeric(df.get("latitude"), errors="coerce")
-        df["longitude"] = pd.to_numeric(df.get("longitude"), errors="coerce")
-        df["elevation_ft"] = pd.to_numeric(df.get("elevation_ft"), errors="coerce")
-        df["inventory_date"] = pd.to_datetime(df.get("inventory_date"), errors="coerce")
+        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
+        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
+        df["elevation_ft"] = pd.to_numeric(df["elevation_ft"], errors="coerce")
+        df["inventory_date"] = pd.to_datetime(df["inventory_date"], errors="coerce")
 
         df.dropna(subset=["latitude", "longitude", "site_number"], inplace=True)
 
@@ -52,5 +53,5 @@ def transform_usgs_monitoring_locations(raw_data: dict) -> bytes | None:
         return serialize_df(df)
 
     except Exception as e:
-        logger.error(f"Error transforming USGS monitoring locations: {e}")
+        logger.exception("Error transforming USGS monitoring locations")
         return None

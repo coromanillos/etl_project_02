@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 def load_usgs_monitoring_locations(parquet_blob: bytes) -> None:
     try:
         df = deserialize_df(parquet_blob)
-
         monitoring_location_schema.validate(df)
 
         engine = create_engine(get_postgres_url())
@@ -34,5 +33,5 @@ def load_usgs_monitoring_locations(parquet_blob: bytes) -> None:
         logger.info(f"Inserted {len(records)} records into PostgreSQL")
 
     except Exception as e:
-        logger.error(f"Failed to load monitoring locations: {e}")
+        logger.exception("Failed to load monitoring locations")
         raise
