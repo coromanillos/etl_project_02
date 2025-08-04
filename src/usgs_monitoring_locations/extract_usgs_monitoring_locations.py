@@ -8,10 +8,11 @@
 
 import logging
 import requests
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-def fetch_json(url: str) -> dict | None:
+def fetch_json(url: str) -> Optional[dict]:
     try:
         logger.info(f"Fetching URL: {url}")
         response = requests.get(url)
@@ -19,10 +20,10 @@ def fetch_json(url: str) -> dict | None:
         logger.info("Fetch successful")
         return response.json()
     except requests.RequestException as e:
-        logger.error(f"HTTP request failed: {e}")
+        logger.exception("HTTP request failed")
         return None
 
-def extract_usgs_monitoring_locations(config: dict) -> dict | None:
+def extract_usgs_monitoring_locations(config: dict) -> Optional[dict]:
     url = config.get("usgs", {}).get("monitoring_locations_url")
     if not url:
         logger.error("Missing 'monitoring_locations_url' in config under 'usgs'")
