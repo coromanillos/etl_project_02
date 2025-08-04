@@ -22,7 +22,7 @@ def load_config(config_path: Optional[str] = None) -> dict:
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
-        logger.info(f"Config loaded from {config_path}")
+        logger.info(f"Config loaded successfully from {config_path}")
         return config
     except FileNotFoundError:
         logger.error(f"Config file not found: {config_path}")

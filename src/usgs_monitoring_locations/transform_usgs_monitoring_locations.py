@@ -7,19 +7,11 @@
 
 import logging
 import pandas as pd
+from utils.serialization import serialize_df
 
 logger = logging.getLogger(__name__)
 
-def parse_usgs_monitoring_locations(raw_data: dict) -> pd.DataFrame | None:
-    """
-    Parse, flatten, and clean USGS monitoring locations raw GeoJSON data.
-
-    Args:
-        raw_data: dict from extract_usgs_monitoring_locations()
-
-    Returns:
-        Cleaned pandas DataFrame or None if empty/error.
-    """
+def transform_usgs_monitoring_locations(raw_data: dict) -> bytes | None:
     try:
         features = raw_data.get("features", [])
         if not features:
@@ -35,8 +27,6 @@ def parse_usgs_monitoring_locations(raw_data: dict) -> pd.DataFrame | None:
         df = pd.DataFrame(records)
         logger.info(f"Parsed {len(df)} raw monitoring location records")
 
-        # === Basic Cleaning Steps ===
-        # Rename columns for clarity (example, optional)
         df.rename(columns={
             "dec_lat_va": "latitude",
             "dec_long_va": "longitude",
@@ -50,17 +40,16 @@ def parse_usgs_monitoring_locations(raw_data: dict) -> pd.DataFrame | None:
             "inventory_dt": "inventory_date"
         }, inplace=True)
 
-        # Convert data types
         df["latitude"] = pd.to_numeric(df.get("latitude"), errors="coerce")
         df["longitude"] = pd.to_numeric(df.get("longitude"), errors="coerce")
         df["elevation_ft"] = pd.to_numeric(df.get("elevation_ft"), errors="coerce")
         df["inventory_date"] = pd.to_datetime(df.get("inventory_date"), errors="coerce")
 
-        # Drop rows with missing essential fields
         df.dropna(subset=["latitude", "longitude", "site_number"], inplace=True)
 
         logger.info(f"Cleaned data to {len(df)} valid monitoring location records")
-        return df
+
+        return serialize_df(df)
 
     except Exception as e:
         logger.error(f"Error transforming USGS monitoring locations: {e}")
