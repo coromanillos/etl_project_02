@@ -1,3 +1,4 @@
+# OUTDATED: Now using Poetry for dependency management
 # requirements.txt
 
 requests==2.32.4
