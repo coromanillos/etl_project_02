@@ -1,23 +1,22 @@
-[tool.poetry]
-name = "etl_pipeline_02"
+[project]
+name = "etl-pipeline-02"
 version = "0.1.0"
-description = "An ETL pipeline that extracts data from a REST API and stages it in PostgreSQL"
-authors = ["Christopher Romanillos <you@example.com>"]
-license = "MIT"
+description = "ETL pipeline using Airflow"
+authors = [
+    {name = "Christopher Romanillos", email = "you@example.com"}
+]
 readme = "README.md"
-packages = []  # explicitly disable packaging
-python = ">=3.10,<3.11.2"
+requires-python = ">=3.11"
+dependencies = [
+    "requests",
+    "pandas",
+    "psycopg2-binary",
+    "pyyaml",
+    "python-dotenv"
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<3.11.2"
-requests = "^2.31.0"
-pandas = "^2.2.2"
-psycopg2-binary = "^2.9.9"
-pyyaml = "^6.0.1"
-python-dotenv = "^1.0.1"
-
-[tool.poetry.dev-dependencies]
-pytest = "^7.4"
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0"
 pytest-mock = "^3.12"
 pytest-cov = "^4.1"
 mypy = "^1.10"
@@ -26,11 +25,6 @@ ruff = "^0.4"
 ipykernel = "^6.29"
 jupyterlab = "^4.2"
 pre-commit = "^3.7"
-
-[tool.pytest.ini_options]
-minversion = "7.0"
-addopts = "-ra --tb=short --strict-markers"
-testpaths = ["tests"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

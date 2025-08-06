@@ -1,21 +1,28 @@
-# Dockerfile
-
 # Use official Airflow image with Python 3.10
 FROM apache/airflow:3.0.2-python3.10
 
-# Switch to root to install dependencies
+# Switch to root to install system dependencies
 USER root
 
-# Copy and install Python requirements
-COPY requirements.txt /
-RUN pip install --no-cache-dir -r /requirements.txt
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 - && \
+    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
 
-# Copy source code
+# Copy project files for dependency installation
+COPY pyproject.toml poetry.lock /app/
+
+WORKDIR /app
+
+# Install project dependencies via Poetry
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi
+
+# Copy the actual code
 COPY ./airflow/dags /opt/airflow/dags
 COPY ./src /opt/airflow/src
 COPY ./models /opt/airflow/models
 
-# Set permissions if needed (optional)
+# Set permissions (optional)
 RUN chown -R airflow: /opt/airflow
 
 # Copy entrypoint script
@@ -25,5 +32,5 @@ RUN chmod +x /entrypoint.sh
 # Switch back to airflow user
 USER airflow
 
-# Set default entrypoint
+# Default entrypoint
 ENTRYPOINT ["/entrypoint.sh"]

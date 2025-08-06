@@ -7,25 +7,24 @@
 ###########################################
 
 import logging
-import requests
-from typing import Optional
+from typing import Optional, Protocol
 
 logger = logging.getLogger(__name__)
 
-def fetch_json(url: str) -> Optional[dict]:
-    try:
-        logger.info(f"Fetching URL: {url}")
-        response = requests.get(url)
-        response.raise_for_status()
-        logger.info("Fetch successful")
-        return response.json()
-    except requests.RequestException as e:
-        logger.exception("HTTP request failed")
-        return None
+class HttpClient(Protocol):
+    def get(self, url: str) -> dict:
+        ...
 
-def extract_usgs_monitoring_locations(config: dict) -> Optional[dict]:
+def extract_usgs_monitoring_locations(config: dict, client: HttpClient) -> Optional[dict]:
     url = config.get("usgs", {}).get("monitoring_locations_url")
     if not url:
         logger.error("Missing 'monitoring_locations_url' in config under 'usgs'")
         return None
-    return fetch_json(url)
+    try:
+        logger.info(f"Fetching URL: {url}")
+        response = client.get(url)
+        logger.info("Fetch successful")
+        return response
+    except Exception as e:
+        logger.exception("HTTP request failed")
+        return None
