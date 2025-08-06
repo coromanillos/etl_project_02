@@ -5,23 +5,23 @@
 # Date: 08/02/25
 ###########################################
 
-from pydantic import BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
+from functools import lru_cache
 
 class Config(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="forbid")
-
+    db_user: str
+    db_password: str
+    db_host: str
+    db_port: int
+    db_name: str
     monitoring_locations_url: str
-    postgres_user: str
-    postgres_password: str
-    postgres_host: str
-    postgres_port: int
-    postgres_db: str
 
+    model_config = {
+        "env_file": ".env",
+        "extra": "ignore",
+    }
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+@lru_cache()
+def get_config():
+    return Config()
 
-
-config = Config()
