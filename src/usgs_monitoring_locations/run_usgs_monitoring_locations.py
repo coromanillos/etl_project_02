@@ -10,7 +10,7 @@ import pandas as pd
 from src.usgs_monitoring_locations.extract_usgs_monitoring_locations import extract_usgs_monitoring_locations
 from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import transform_usgs_monitoring_locations
 from src.usgs_monitoring_locations.load_usgs_monitoring_locations import load_usgs_monitoring_locations
-from src.utils.config import Config
+from src.utils.config import get_config
 from src.common.http_client import RequestsHttpClient  # ensure your implementation here
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def load_task(df: pd.DataFrame, session_factory, metadata):
     logger.info("Load task completed successfully")
 
 if __name__ == "__main__":
-    config = Config()
+    config = get_config()
     http_client = RequestsHttpClient()
     url = config.monitoring_locations_url
 

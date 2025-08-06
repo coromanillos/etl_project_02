@@ -11,7 +11,7 @@ from airflow.utils.dates import days_ago
 from datetime import timedelta, datetime
 import pandas as pd
 from src.usgs_monitoring_locations.wrapper_etl import extract_task, transform_task, load_task
-from utils.config import Config
+from utils.config import get_config
 from utils.db_config import get_engine
 from models.monitoring_schema import metadata
 from src.common.http_client import RequestsHttpClient  # example placeholder
@@ -33,7 +33,7 @@ with DAG(
 ) as dag:
 
     def run_extract(**kwargs):
-        config = Config()
+        config = get_config()
         http_client = RequestsHttpClient()
         url = config.monitoring_locations_url
 

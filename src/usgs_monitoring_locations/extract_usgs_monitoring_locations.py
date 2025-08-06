@@ -9,7 +9,7 @@
 import logging
 from typing import Optional, Protocol
 import pandas as pd
-from src.utils.serialization import save_df_to_parquet
+from src.utils.serialization import save_dataframe_to_parquet
 
 logger = logging.getLogger(__name__)
 

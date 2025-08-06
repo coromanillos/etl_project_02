@@ -1,7 +1,7 @@
 # tests/test_config.py
 
 import os
-from src.utils.config import Config
+from src.utils.config import get_config
 
 def test_config_from_env(monkeypatch):
     # Set environment variables
@@ -12,7 +12,7 @@ def test_config_from_env(monkeypatch):
     monkeypatch.setenv("POSTGRES_PORT", "5432")
     monkeypatch.setenv("POSTGRES_DB", "test_db")
 
-    config = Config()
+    config = get_config()
 
     assert config.monitoring_locations_url == "http://example.com"
     assert config.postgres_user == "test_user"
