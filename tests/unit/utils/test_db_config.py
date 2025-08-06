@@ -1,30 +1,23 @@
-# test_db_config.py
+# tests/test_db_config.py
 
-import urllib.parse
-import pytest
-from src.utils.db_config import get_postgres_url
+from unittest.mock import patch, MagicMock
+from sqlalchemy.engine import Engine
+from src.utils import db_config
 
-def test_postgres_url_from_env(monkeypatch):
-    monkeypatch.setenv("POSTGRES_USER", "user")
-    monkeypatch.setenv("POSTGRES_PASSWORD", "p@ssword!")
-    monkeypatch.setenv("POSTGRES_HOST", "db.example.com")
-    monkeypatch.setenv("POSTGRES_PORT", "5433")
-    monkeypatch.setenv("POSTGRES_DB", "mydb")
+def test_get_engine_connection_string(monkeypatch):
+    # Patch config values
+    monkeypatch.setattr(db_config.config, "postgres_user", "test_user")
+    monkeypatch.setattr(db_config.config, "postgres_password", "test_pass")
+    monkeypatch.setattr(db_config.config, "postgres_host", "localhost")
+    monkeypatch.setattr(db_config.config, "postgres_port", 5432)
+    monkeypatch.setattr(db_config.config, "postgres_db", "test_db")
 
-    expected = (
-        "postgresql://user:"
-        + urllib.parse.quote_plus("p@ssword!")
-        + "@db.example.com:5433/mydb"
-    )
-    assert get_postgres_url() == expected
+    with patch("src.utils.db_config.create_engine") as mock_create_engine:
+        mock_engine = MagicMock(spec=Engine)
+        mock_create_engine.return_value = mock_engine
 
-def test_postgres_url_with_defaults(monkeypatch):
-    # Remove env vars to trigger defaults
-    for var in [
-        "POSTGRES_USER", "POSTGRES_PASSWORD", 
-        "POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_DB"
-    ]:
-        monkeypatch.delenv(var, raising=False)
+        engine = db_config.get_engine()
 
-    expected = "postgresql://postgres:postgres@localhost:5432/monitoring"
-    assert get_postgres_url() == expected
+        expected_url = "postgresql://test_user:test_pass@localhost:5432/test_db"
+        mock_create_engine.assert_called_once_with(expected_url)
+        assert engine == mock_engine

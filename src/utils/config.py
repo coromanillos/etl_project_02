@@ -5,28 +5,23 @@
 # Date: 08/02/25
 ###########################################
 
-import yaml
-import logging
-import os
-from typing import Optional
+from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-logger = logging.getLogger(__name__)
+class Config(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="forbid")
 
-def load_config(config_path: Optional[str] = None) -> dict:
-    """
-    Load YAML config from file.
+    monitoring_locations_url: str
+    postgres_user: str
+    postgres_password: str
+    postgres_host: str
+    postgres_port: int
+    postgres_db: str
 
-    Path can be overridden by environment variable CONFIG_PATH.
-    """
-    config_path = config_path or os.getenv("CONFIG_PATH", "config.yaml")
-    try:
-        with open(config_path, "r") as f:
-            config = yaml.safe_load(f)
-        logger.info(f"Config loaded successfully from {config_path}")
-        return config
-    except FileNotFoundError:
-        logger.error(f"Config file not found: {config_path}")
-        raise
-    except yaml.YAMLError as e:
-        logger.error(f"Error parsing config file: {e}")
-        raise
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+
+config = Config()

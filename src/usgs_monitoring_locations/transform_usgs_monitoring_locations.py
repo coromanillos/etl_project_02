@@ -1,33 +1,36 @@
-###################################################################
+###########################################################################
 # Name: transform_usgs_monitoring_locations.py
 # Author: Christopher O. Romanillos
 # Description: Transform/Flatten + Clean USGS monitoring locations raw data
 # Date: 08/03/25
-###################################################################
+###########################################################################
 
 import logging
 import pandas as pd
-from utils.serialization import serialize_df
 from typing import Optional
+from src.utils.config import config  # Dependency-injected or global config
+from src.utils.serialization import save_dataframe_to_parquet
 
 logger = logging.getLogger(__name__)
 
-def transform_usgs_monitoring_locations(raw_data: dict) -> Optional[bytes]:
+
+def transform_usgs_monitoring_locations(cfg=config) -> Optional[pd.DataFrame]:
+    """
+    Transform and clean raw USGS monitoring location data.
+
+    Args:
+        cfg: Configuration object with paths and settings.
+
+    Returns:
+        pd.DataFrame or None: Transformed dataframe if successful, else None.
+    """
     try:
-        features = raw_data.get("features", [])
-        if not features:
-            logger.warning("No features found in raw data")
-            return None
+        raw_path = cfg.data_paths["raw"]
+        df = pd.read_parquet(raw_path)
+        logger.info(f"Read {len(df)} raw records from {raw_path}")
 
-        records = [
-            {**feature.get("properties", {}), "id": feature.get("id")}
-            for feature in features
-        ]
-
-        df = pd.DataFrame(records)
-        logger.info(f"Parsed {len(df)} raw monitoring location records")
-
-        df.rename(columns={
+        # Rename columns for clarity
+        rename_map = {
             "dec_lat_va": "latitude",
             "dec_long_va": "longitude",
             "alt_va": "elevation_ft",
@@ -38,19 +41,19 @@ def transform_usgs_monitoring_locations(raw_data: dict) -> Optional[bytes]:
             "site_no": "site_number",
             "station_nm": "station_name",
             "inventory_dt": "inventory_date"
-        }, inplace=True)
+        }
+        df.rename(columns=rename_map, inplace=True)
 
+        # Convert data types safely
         df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
         df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
         df["elevation_ft"] = pd.to_numeric(df["elevation_ft"], errors="coerce")
         df["inventory_date"] = pd.to_datetime(df["inventory_date"], errors="coerce")
 
-        df.dropna(subset=["latitude", "longitude", "site_number"], inplace=True)
+        logger.info(f"Transformed data: {df.shape[0]} records, {df.shape[1]} columns")
 
-        logger.info(f"Cleaned data to {len(df)} valid monitoring location records")
-
-        return serialize_df(df)
+        return df
 
     except Exception as e:
-        logger.exception("Error transforming USGS monitoring locations")
+        logger.error(f"Failed to transform USGS monitoring locations: {e}", exc_info=True)
         return None

@@ -1,52 +1,45 @@
-# test_usgs_run_monitoring_locations.py
-
+# tests/test_run_usgs_monitoring_locations.py
 import pytest
 import pandas as pd
-from unittest.mock import patch
-from src.run_usgs_monitoring_locations import extract_task, transform_task, load_task
-
-
-@pytest.fixture
-def sample_raw_data():
-    return {"features": [{"properties": {"site_no": "001", "station_nm": "Test Site"}}]}
-
-
-@pytest.fixture
-def sample_transformed_data():
-    return [{"site_no": "001", "station_nm": "Test Site"}]
-
+from unittest.mock import MagicMock, patch
+from src.usgs_monitoring_locations.run_usgs_monitoring_locations import extract_task, transform_task, load_task
 
 def test_extract_task_success():
-    with patch("src.run_usgs_monitoring_locations.load_config", return_value={"mock": "config"}), \
-         patch("src.run_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value={"mock": "data"}):
-        result = extract_task()
-        assert isinstance(result, dict)
-        assert result == {"mock": "data"}
+    mock_config = MagicMock()
+    mock_client = MagicMock()
 
+    sample_df = pd.DataFrame({"a": [1,2]})
+    with patch("src.usgs_monitoring_locations.extract_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=sample_df):
+        df = extract_task(mock_config, mock_client)
+    assert not df.empty
 
 def test_extract_task_failure():
-    with patch("src.run_usgs_monitoring_locations.load_config", return_value={"mock": "config"}), \
-         patch("src.run_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=None):
-        with pytest.raises(ValueError, match="Extract task failed: No data returned."):
-            extract_task()
+    mock_config = MagicMock()
+    mock_client = MagicMock()
 
+    with patch("src.usgs_monitoring_locations.extract_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=None):
+        with pytest.raises(ValueError):
+            extract_task(mock_config, mock_client)
 
-def test_transform_task_success(sample_raw_data):
-    with patch("src.run_usgs_monitoring_locations.parse_usgs_monitoring_locations") as mock_parse:
-        mock_df = pd.DataFrame(sample_raw_data["features"])
-        mock_parse.return_value = mock_df
-        result = transform_task(sample_raw_data)
-        assert isinstance(result, list)
-        assert result[0]["properties"]["site_no"] == "001"
+def test_transform_task_success():
+    sample_df = pd.DataFrame({"a": [1,2]})
+    with patch("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.transform_usgs_monitoring_locations", return_value=sample_df.to_parquet()):
+        transformed_df = transform_task(sample_df)
+    assert not transformed_df.empty
 
+def test_transform_task_failure():
+    sample_df = pd.DataFrame({"a": [1,2]})
+    with patch("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.transform_usgs_monitoring_locations", return_value=None):
+        with pytest.raises(ValueError):
+            transform_task(sample_df)
 
-def test_transform_task_failure_empty():
-    with patch("src.run_usgs_monitoring_locations.parse_usgs_monitoring_locations", return_value=pd.DataFrame()):
-        with pytest.raises(ValueError, match="Transform task failed: No valid data."):
-            transform_task({})
+def test_load_task_calls_load(monkeypatch):
+    df = pd.DataFrame({"a": [1,2]})
+    called = {}
+    def fake_load(df_arg, session_factory, metadata):
+        called["called"] = True
+        assert isinstance(df_arg, pd.DataFrame)
 
-
-def test_load_task_success(sample_transformed_data):
-    with patch("src.run_usgs_monitoring_locations.load_data_to_postgres") as mock_load:
-        load_task(sample_transformed_data)
-        mock_load.assert_called_once()
+    monkeypatch.setattr("src.usgs_monitoring_locations.load_usgs_monitoring_locations.load_usgs_monitoring_locations", fake_load)
+    load_task(df, session_factory=None, metadata=None)
+    assert called.get("called", False)

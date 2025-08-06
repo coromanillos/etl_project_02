@@ -1,31 +1,47 @@
-# test_load_usgs_monitoring_locations.py
-
 import pytest
-from unittest.mock import patch, MagicMock
-from src.load_usgs_monitoring_locations import load_usgs_monitoring_locations
+import pandas as pd
+from unittest.mock import MagicMock
+from sqlalchemy.engine import Engine
 
+from src.usgs_monitoring_locations.load_usgs_monitoring_locations import load_usgs_monitoring_locations
+from src.usgs_monitoring_locations.validation import validate_usgs_monitoring_locations
 
-@patch("src.load_usgs_monitoring_locations.deserialize_df")
-@patch("src.load_usgs_monitoring_locations.create_engine")
-@patch("src.load_usgs_monitoring_locations.sessionmaker")
-@patch("src.load_usgs_monitoring_locations.monitoring_location_schema.validate")
-def test_load_usgs_monitoring_locations_success(mock_validate, mock_sessionmaker, mock_engine, mock_deserialize):
-    df_mock = MagicMock()
-    df_mock.iterrows.return_value = [(0, MagicMock(to_dict=lambda: {"site_number": "00001"}))]
-    mock_deserialize.return_value = df_mock
+def make_df():
+    return pd.DataFrame([{"site_number": "001", "latitude": 10.0, "longitude": 20.0}])
 
-    mock_session = MagicMock()
-    mock_sessionmaker.return_value = MagicMock(return_value=mock_session)
+def test_load_success(monkeypatch):
+    df = make_df()
 
-    blob = b"dummy_parquet_bytes"
-    load_usgs_monitoring_locations(blob)
+    # Mock validation to pass
+    monkeypatch.setattr("src.usgs_monitoring_locations.validation.validate_usgs_monitoring_locations", lambda x: None)
 
-    mock_validate.assert_called_once()
-    mock_session.return_value.bulk_save_objects.assert_called_once()
-    mock_session.return_value.commit.assert_called_once()
+    # Mock engine and to_sql
+    mock_engine = MagicMock(spec=Engine)
+    monkeypatch.setattr(df, "to_sql", lambda *args, **kwargs: None)
 
+    def session_factory():
+        return mock_engine
 
-@patch("src.load_usgs_monitoring_locations.deserialize_df", side_effect=Exception("Boom"))
-def test_load_usgs_monitoring_locations_fail(mock_deserialize):
-    with pytest.raises(Exception, match="Boom"):
-        load_usgs_monitoring_locations(b"invalid_blob")
+    def metadata(engine):
+        pass
+
+    # Should not raise any errors
+    load_usgs_monitoring_locations(df, session_factory, metadata)
+
+def test_load_schema_validation_fails(monkeypatch):
+    df = make_df()
+
+    # Simulate validation failure
+    def fake_validate(_):
+        raise ValueError("Invalid data")
+
+    monkeypatch.setattr("src.usgs_monitoring_locations.validation.validate_usgs_monitoring_locations", fake_validate)
+
+    def session_factory():
+        return MagicMock(spec=Engine)
+
+    def metadata(engine):
+        pass
+
+    with pytest.raises(ValueError, match="Invalid data"):
+        load_usgs_monitoring_locations(df, session_factory, metadata)

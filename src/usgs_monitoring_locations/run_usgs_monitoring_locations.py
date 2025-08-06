@@ -10,29 +10,38 @@ import pandas as pd
 from src.usgs_monitoring_locations.extract_usgs_monitoring_locations import extract_usgs_monitoring_locations
 from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import transform_usgs_monitoring_locations
 from src.usgs_monitoring_locations.load_usgs_monitoring_locations import load_usgs_monitoring_locations
+from src.utils.config import Config
+from src.common.http_client import RequestsHttpClient  # ensure your implementation here
 
 logger = logging.getLogger(__name__)
 
-def extract_task(config: dict, http_client) -> dict:
+def extract_task(url: str, http_client) -> pd.DataFrame:
     logger.info("Starting extract task")
-    data = extract_usgs_monitoring_locations(config, http_client)
-    if not data:
+    df = extract_usgs_monitoring_locations(url, http_client)
+    if df is None or df.empty:
         raise ValueError("Extract task failed: No data returned.")
-    logger.info("Extract task completed successfully")
-    return data
+    logger.info(f"Extract task completed successfully with {len(df)} records")
+    return df
 
-def transform_task(raw_data: dict) -> list[dict]:
+def transform_task(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Starting transform task")
-    parquet_bytes = transform_usgs_monitoring_locations(raw_data)
+    parquet_bytes = transform_usgs_monitoring_locations(df.to_dict(orient="records"))
     if not parquet_bytes:
         raise ValueError("Transform task failed: No valid data.")
-    df = pd.read_parquet(pd.io.common.BytesIO(parquet_bytes))
-    logger.info(f"Transform task completed successfully, {len(df)} records processed")
-    return df.to_dict(orient="records")
+    transformed_df = pd.read_parquet(pd.io.common.BytesIO(parquet_bytes))
+    logger.info(f"Transform task completed successfully, {len(transformed_df)} records processed")
+    return transformed_df
 
-def load_task(records: list[dict], session_factory, metadata):
+def load_task(df: pd.DataFrame, session_factory, metadata):
     logger.info("Starting load task")
-    df = pd.DataFrame(records)
-    parquet_blob = df.to_parquet(index=False)
-    load_usgs_monitoring_locations(parquet_blob, session_factory, metadata)
+    load_usgs_monitoring_locations(df, session_factory, metadata)
     logger.info("Load task completed successfully")
+
+if __name__ == "__main__":
+    config = Config()
+    http_client = RequestsHttpClient()
+    url = config.monitoring_locations_url
+
+    df_extracted = extract_task(url, http_client)
+    df_transformed = transform_task(df_extracted)
+    load_task(df_transformed, session_factory=..., metadata=...)  # Fill in with your implementations
