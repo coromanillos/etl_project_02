@@ -259,3 +259,9 @@ The United States Geological Survey (USGS) provides water-related data through v
     - Writing should happen at the end, directly into the database
     - This approach prevents I/O, making pipeline clean, fast and cloud native.
 ---
+
+# Testing:
+
+  poetry run pytest
+  
+---

@@ -8,27 +8,33 @@
 
 import logging
 import pandas as pd
-from sqlalchemy.orm import Session as SessionType
-from models.monitoring_schema import MonitoringLocation, monitoring_location_schema
-from utils.serialization import deserialize_df
+from sqlalchemy.engine import Engine
+from src.usgs_monitoring_locations.validate_usgs_monitoring_locations import validate_usgs_monitoring_locations
 
 logger = logging.getLogger(__name__)
 
-def load_usgs_monitoring_locations(parquet_blob: bytes, session_factory: callable, metadata: callable) -> None:
+def load_usgs_monitoring_locations(
+    df: pd.DataFrame,
+    session_factory: callable,
+    metadata: callable
+) -> None:
     try:
-        df = deserialize_df(parquet_blob)
-        monitoring_location_schema.validate(df)
+        # Validate the dataframe
+        validate_usgs_monitoring_locations(df)
 
-        engine = session_factory()
+        # Create DB engine and setup metadata
+        engine: Engine = session_factory()
         metadata(engine)
-        session = engine()
 
-        with session as s:
-            records = [MonitoringLocation(**row.to_dict()) for _, row in df.iterrows()]
-            s.bulk_save_objects(records)
-            s.commit()
-
-        logger.info(f"Inserted {len(records)} records into PostgreSQL")
+        # Load data into the database
+        df.to_sql(
+            name="monitoring_locations",
+            con=engine,
+            index=False,
+            if_exists="append",
+            method="multi"
+        )
+        logger.info(f"Inserted {len(df)} records into PostgreSQL")
 
     except Exception as e:
         logger.exception("Failed to load monitoring locations")

@@ -1,35 +1,68 @@
-# test_extract_usgs_monitoring_locations.py
+# tests/test_extract_usgs_monitoring_locations.py
 
 import pytest
-from unittest.mock import patch
-from src.extract_usgs_monitoring_locations import fetch_json, extract_usgs_monitoring_locations
+import pandas as pd
+from unittest.mock import MagicMock
+from src.usgs_monitoring_locations.extract_usgs_monitoring_locations import extract_usgs_monitoring_locations
 
+class ConfigStub:
+    def __init__(self, url=None, raw_path=None):
+        self.config = {
+            "usgs": {
+                "monitoring_locations_url": url
+            },
+            "data_paths": {
+                "raw": raw_path or "/tmp/test_raw.parquet"
+            }
+        }
 
-@patch("src.extract_usgs_monitoring_locations.requests.get")
-def test_fetch_json_success(mock_get):
-    mock_get.return_value.status_code = 200
-    mock_get.return_value.json.return_value = {"data": "ok"}
+    def __getitem__(self, key):
+        return self.config.get(key)
 
-    result = fetch_json("http://example.com")
-    assert result == {"data": "ok"}, "Should return parsed JSON data"
+@pytest.fixture
+def mock_client():
+    return MagicMock()
 
+def test_extract_success(tmp_path, mock_client):
+    # Arrange
+    url = "http://fake-url.com"
+    raw_path = tmp_path / "raw.parquet"
+    config = ConfigStub(url=url, raw_path=str(raw_path))
 
-@patch("src.extract_usgs_monitoring_locations.requests.get")
-def test_fetch_json_failure(mock_get):
-    mock_get.side_effect = Exception("Connection error")
+    sample_response = {
+        "features": [
+            {"id": "1", "properties": {"a": 1}},
+            {"id": "2", "properties": {"a": 2}}
+        ]
+    }
+    mock_client.get.return_value = sample_response
 
-    result = fetch_json("http://bad-url.com")
-    assert result is None, "Should return None on request failure"
+    # Act
+    df = extract_usgs_monitoring_locations(config, mock_client)
 
+    # Assert
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) == 2
+    assert "id" in df.columns
+    mock_client.get.assert_called_once_with(url)
 
-def test_extract_usgs_monitoring_locations_missing_config():
-    result = extract_usgs_monitoring_locations({})
-    assert result is None, "Should return None when config is missing"
+def test_extract_no_url(mock_client):
+    config = ConfigStub(url=None)
+    df = extract_usgs_monitoring_locations(config, mock_client)
+    assert df is None
 
+def test_extract_no_features(mock_client):
+    url = "http://fake-url.com"
+    config = ConfigStub(url=url)
+    mock_client.get.return_value = {"features": []}
 
-@patch("src.extract_usgs_monitoring_locations.fetch_json")
-def test_extract_usgs_monitoring_locations_valid(mock_fetch, mock_config):
-    mock_fetch.return_value = {"mock": "data"}
+    df = extract_usgs_monitoring_locations(config, mock_client)
+    assert df is None
 
-    result = extract_usgs_monitoring_locations(mock_config)
-    assert result == {"mock": "data"}, "Should return data fetched via config URL"
+def test_extract_raises_exception(mock_client):
+    url = "http://fake-url.com"
+    config = ConfigStub(url=url)
+    mock_client.get.side_effect = Exception("fail")
+
+    df = extract_usgs_monitoring_locations(config, mock_client)
+    assert df is None
