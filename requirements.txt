@@ -1,7 +1,0 @@
-# OUTDATED: Now using Poetry for dependency management
-# requirements.txt
-
-requests==2.32.4
-apache-airflow==3.0.2
-apache-airflow-providers-postgres==6.2.1
-psycopg2-binary==2.9.10

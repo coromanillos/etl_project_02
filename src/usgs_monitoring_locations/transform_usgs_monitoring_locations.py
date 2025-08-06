@@ -25,7 +25,6 @@ def transform_usgs_monitoring_locations(raw_data: dict) -> Optional[bytes]:
         ]
 
         df = pd.DataFrame(records)
-
         logger.info(f"Parsed {len(df)} raw monitoring location records")
 
         df.rename(columns={
