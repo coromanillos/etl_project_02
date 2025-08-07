@@ -1,3 +1,4 @@
+# config.yaml
 usgs:
   monitoring_locations_url: "https://labs.waterdata.usgs.gov/api/collections/monitoring-locations/items?f=json"
 output:
