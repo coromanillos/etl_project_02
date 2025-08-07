@@ -1,27 +1,27 @@
-###########################################
+#############################################
 # Name: config.py
 # Author: Christopher O. Romanillos
-# Description: Config utility loader
+# Description: Central point of config access
 # Date: 08/02/25
-###########################################
+#############################################
 
-from pydantic_settings import BaseSettings
-from functools import lru_cache
+import os
+from dotenv import load_dotenv
+import yaml
 
-class Config(BaseSettings):
-    db_user: str
-    db_password: str
-    db_host: str
-    db_port: int
-    db_name: str
-    monitoring_locations_url: str
+# Optional .env loading – no crash if missing
+dotenv_path = os.path.join(os.path.dirname(__file__), "../../.env")
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
 
-    model_config = {
-        "env_file": ".env",
-        "extra": "ignore",
-    }
+def load_config(path: str) -> dict:
+    with open(path, "r") as f:
+        config = yaml.safe_load(f)
 
-@lru_cache()
-def get_config():
-    return Config()
+    # Optionally override or supplement with env vars
+    api_url = os.environ.get("API_URL", config.get("api", {}).get("url"))
+    api_key = os.environ.get("API_KEY", config.get("api", {}).get("key"))
 
+    config["api"]["url"] = api_url
+    config["api"]["key"] = api_key
+    return config
