@@ -38,7 +38,7 @@ def test_extract_success(tmp_path, mock_client):
     mock_client.get.return_value = sample_response
 
     # Act
-    df = extract_usgs_monitoring_locations(config, mock_client)
+    df = extract_usgs_monitoring_locations(config["usgs"]["monitoring_locations_url"], mock_client)
 
     # Assert
     assert isinstance(df, pd.DataFrame)
@@ -48,7 +48,7 @@ def test_extract_success(tmp_path, mock_client):
 
 def test_extract_no_url(mock_client):
     config = ConfigStub(url=None)
-    df = extract_usgs_monitoring_locations(config, mock_client)
+    df = extract_usgs_monitoring_locations(config["usgs"]["monitoring_locations_url"], mock_client)
     assert df is None
 
 def test_extract_no_features(mock_client):
@@ -56,7 +56,7 @@ def test_extract_no_features(mock_client):
     config = ConfigStub(url=url)
     mock_client.get.return_value = {"features": []}
 
-    df = extract_usgs_monitoring_locations(config, mock_client)
+    df = extract_usgs_monitoring_locations(config["usgs"]["monitoring_locations_url"], mock_client)
     assert df is None
 
 def test_extract_raises_exception(mock_client):
@@ -64,5 +64,5 @@ def test_extract_raises_exception(mock_client):
     config = ConfigStub(url=url)
     mock_client.get.side_effect = Exception("fail")
 
-    df = extract_usgs_monitoring_locations(config, mock_client)
+    df = extract_usgs_monitoring_locations(config["usgs"]["monitoring_locations_url"], mock_client)
     assert df is None
