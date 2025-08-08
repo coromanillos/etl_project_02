@@ -14,7 +14,7 @@ from src.usgs_monitoring_locations.wrapper_etl import extract_task, transform_ta
 from utils.config import get_config
 from utils.db_config import get_engine
 from models.monitoring_schema import metadata
-from src.common.http_client import RequestsHttpClient  # example placeholder
+from src.common.http_client import RequestsHttpClient  
 
 default_args = {
     "owner": "airflow",
