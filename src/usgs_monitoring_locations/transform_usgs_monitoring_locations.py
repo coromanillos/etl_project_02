@@ -1,34 +1,32 @@
-###########################################################################
+###########################################
 # Name: transform_usgs_monitoring_locations.py
 # Author: Christopher O. Romanillos
 # Description: Transform/Flatten + Clean USGS monitoring locations raw data
 # Date: 08/03/25
-###########################################################################
+###########################################
 
 import logging
 import pandas as pd
 from typing import Optional
-from src.utils.config import load_config
-from src.utils.serialization import save_dataframe_to_parquet
+from src.utils.config import load_config, Config
 
 logger = logging.getLogger(__name__)
 
-def transform_usgs_monitoring_locations(cfg: Optional[dict] = None) -> Optional[pd.DataFrame]:
+def transform_usgs_monitoring_locations(cfg: Optional[Config] = None) -> Optional[pd.DataFrame]:
     """
     Transform and clean raw USGS monitoring location data.
 
     Args:
-        cfg: Configuration dictionary with paths and settings.
+        cfg: Config object with paths and settings.
 
     Returns:
         pd.DataFrame or None: Transformed dataframe if successful, else None.
     """
     if cfg is None:
-        cfg = load_config("config/config.yaml")  # Provide actual path here
+        cfg = load_config("config/config.yaml")
 
     try:
-        raw_path = cfg["output"]["directory"] + "/" + cfg["output"]["filename_pattern"].format(timestamp="*")
-        # Or adjust path acquisition logic as needed, e.g., cfg["data_paths"]["raw"]
+        raw_path = f"{cfg.output.directory}/{cfg.output.filename_pattern.format(timestamp='*')}"
         df = pd.read_parquet(raw_path)
         logger.info(f"Read {len(df)} raw records from {raw_path}")
 
