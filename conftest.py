@@ -1,25 +1,30 @@
-# conftest.py
-
+#conftest.py
+import sys
+import os
+import logging
 import pytest
 import pandas as pd
-import logging
 
-# Use a named logger (more compatible with Airflow and production-grade logging setups)
+# Add the absolute path to 'src' directory to sys.path for test imports
+SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
+if SRC_PATH not in sys.path:
+    sys.path.insert(0, SRC_PATH)
+
+# Named logger for tests
 logger = logging.getLogger("usgs_test_logger")
 logger.setLevel(logging.DEBUG)
 
-# Configure named logger with handler and formatter only once
 @pytest.fixture(scope="session")
 def configure_test_logger():
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter(
-        fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    if not logger.hasHandlers():
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            fmt="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
     return logger
 
-# Sample configuration mock
 @pytest.fixture
 def mock_config():
     return {
@@ -28,7 +33,6 @@ def mock_config():
         }
     }
 
-# Fixture to simulate raw API response
 @pytest.fixture
 def sample_raw_usgs_data():
     return {
@@ -51,7 +55,6 @@ def sample_raw_usgs_data():
         ]
     }
 
-# Expected transformed data
 @pytest.fixture
 def expected_clean_dataframe():
     return pd.DataFrame([{
