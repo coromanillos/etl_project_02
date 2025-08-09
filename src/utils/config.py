@@ -12,7 +12,8 @@ import yaml
 import logging
 from pathlib import Path
 from typing import Optional
-from pydantic import BaseSettings, Field, ValidationError
+from pydantic_settings import BaseSettings
+from pydantic import Field, ValidationError
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)

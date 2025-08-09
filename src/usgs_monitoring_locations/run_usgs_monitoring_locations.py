@@ -1,7 +1,7 @@
 ###########################################
 # Name: run_usgs_monitoring_locations.py
 # Author: Christopher O. Romanillos
-# Description: Wrapper script for DAG orchestration
+# Description: Wrapper script for DAG orchestration (refactored for nested Config)
 # Date: 08/02/25
 ###########################################
 
@@ -10,8 +10,8 @@ import pandas as pd
 from src.usgs_monitoring_locations.extract_usgs_monitoring_locations import extract_usgs_monitoring_locations
 from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import transform_usgs_monitoring_locations
 from src.usgs_monitoring_locations.load_usgs_monitoring_locations import load_usgs_monitoring_locations
-from src.utils.config import load_config
-from src.common.http_client import RequestsHttpClient  
+from src.utils.config import load_config, Config
+from src.common.http_client import RequestsHttpClient
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,9 @@ def extract_task(url: str, http_client) -> pd.DataFrame:
     logger.info(f"Extract task completed successfully with {len(df)} records")
     return df
 
-def transform_task(df: pd.DataFrame) -> pd.DataFrame:
+def transform_task(df: pd.DataFrame, cfg: Config) -> pd.DataFrame:
     logger.info("Starting transform task")
-    parquet_bytes = transform_usgs_monitoring_locations(df.to_dict(orient="records"))
+    parquet_bytes = transform_usgs_monitoring_locations(df.to_dict(orient="records"), cfg)
     if not parquet_bytes:
         raise ValueError("Transform task failed: No valid data.")
     transformed_df = pd.read_parquet(pd.io.common.BytesIO(parquet_bytes))
@@ -38,10 +38,11 @@ def load_task(df: pd.DataFrame, session_factory, metadata):
     logger.info("Load task completed successfully")
 
 if __name__ == "__main__":
-    config = load_config("config/config.yaml")  # Provide actual path here
+    config = load_config("config/config.yaml")
     http_client = RequestsHttpClient()
-    url = config["usgs"]["monitoring_locations_url"]
+
+    url = config.usgs.monitoring_locations_url
 
     df_extracted = extract_task(url, http_client)
-    df_transformed = transform_task(df_extracted)
-    load_task(df_transformed, session_factory=..., metadata=...)  # Fill in your implementations
+    df_transformed = transform_task(df_extracted, config)
+    load_task(df_transformed, session_factory=..., metadata=...)  # Fill in your DB session and metadata
