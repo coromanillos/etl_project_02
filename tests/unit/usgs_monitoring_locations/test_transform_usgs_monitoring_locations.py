@@ -2,8 +2,9 @@
 
 import pytest
 import pandas as pd
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import transform_usgs_monitoring_locations
+from src.utils.config import Config
 
 @pytest.fixture
 def sample_parquet(tmp_path):
@@ -24,14 +25,14 @@ def sample_parquet(tmp_path):
     return path
 
 def test_transform_success(monkeypatch, sample_parquet):
-    # Patch load_config to return a dict with raw path
-    monkeypatch.setattr("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.load_config", 
-                        lambda path=None: {
-                            "output": {
-                                "directory": str(sample_parquet.parent),
-                                "filename_pattern": sample_parquet.name
-                            }
-                        })
+    # Patch load_config to return a Config instance with output directory & filename_pattern
+    mock_config = Config(
+        monitoring_locations_url="https://mock-url.com",
+        output_directory=str(sample_parquet.parent),
+        filename_pattern=sample_parquet.name,
+        timestamp_format="%Y%m%d_%H%M%S"
+    )
+    monkeypatch.setattr("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.load_config", lambda path=None: mock_config)
 
     result_df = transform_usgs_monitoring_locations()
     assert "latitude" in result_df.columns
@@ -39,12 +40,13 @@ def test_transform_success(monkeypatch, sample_parquet):
     assert result_df["latitude"].iloc[0] == 10.0
 
 def test_transform_failure(monkeypatch):
-    monkeypatch.setattr("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.load_config", 
-                        lambda path=None: {
-                            "output": {
-                                "directory": "/non/existent",
-                                "filename_pattern": "missing.parquet"
-                            }
-                        })
+    mock_config = Config(
+        monitoring_locations_url="https://mock-url.com",
+        output_directory="/non/existent",
+        filename_pattern="missing.parquet",
+        timestamp_format="%Y%m%d_%H%M%S"
+    )
+    monkeypatch.setattr("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.load_config", lambda path=None: mock_config)
+
     with pytest.raises(Exception):
         transform_usgs_monitoring_locations()

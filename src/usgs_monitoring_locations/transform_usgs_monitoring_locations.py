@@ -56,4 +56,4 @@ def transform_usgs_monitoring_locations(cfg: Optional[dict] = None) -> Optional[
 
     except Exception as e:
         logger.error(f"Failed to transform USGS monitoring locations: {e}", exc_info=True)
-        return None
+        raise

@@ -1,0 +1,13 @@
+# tests/test_config.yaml
+
+api:
+  url: "https://mock-url.com"
+  key: "mock-key"
+
+usgs:
+  monitoring_locations_url: "https://mock-url.com"
+
+output:
+  directory: "tests/mock_data"
+  filename_pattern: "usgs_monitoring_locations_{timestamp}.json"
+  timestamp_format: "%Y%m%d_%H%M%S"

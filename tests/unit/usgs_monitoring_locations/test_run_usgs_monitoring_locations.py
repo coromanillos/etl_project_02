@@ -9,14 +9,14 @@ def test_extract_task_success():
     mock_http_client = MagicMock()
     sample_df = pd.DataFrame({"a": [1, 2]})
 
-    with patch("src.usgs_monitoring_locations.extract_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=sample_df):
+    with patch("src.usgs_monitoring_locations.run_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=sample_df):
         df = extract_task("http://fake-url", mock_http_client)
     assert not df.empty
 
 def test_extract_task_failure():
     mock_http_client = MagicMock()
 
-    with patch("src.usgs_monitoring_locations.extract_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=None):
+    with patch("src.usgs_monitoring_locations.run_usgs_monitoring_locations.extract_usgs_monitoring_locations", return_value=None):
         with pytest.raises(ValueError):
             extract_task("http://fake-url", mock_http_client)
 
@@ -24,14 +24,14 @@ def test_transform_task_success():
     sample_df = pd.DataFrame({"a": [1, 2]})
     fake_parquet = sample_df.to_parquet()
 
-    with patch("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.transform_usgs_monitoring_locations", return_value=fake_parquet):
+    with patch("src.usgs_monitoring_locations.run_usgs_monitoring_locations.transform_usgs_monitoring_locations", return_value=fake_parquet):
         transformed_df = transform_task(sample_df)
     assert not transformed_df.empty
 
 def test_transform_task_failure():
     sample_df = pd.DataFrame({"a": [1, 2]})
 
-    with patch("src.usgs_monitoring_locations.transform_usgs_monitoring_locations.transform_usgs_monitoring_locations", return_value=None):
+    with patch("src.usgs_monitoring_locations.run_usgs_monitoring_locations.transform_usgs_monitoring_locations", return_value=None):
         with pytest.raises(ValueError):
             transform_task(sample_df)
 
@@ -43,6 +43,6 @@ def test_load_task_calls_load(monkeypatch):
         called["called"] = True
         assert isinstance(df_arg, pd.DataFrame)
 
-    monkeypatch.setattr("src.usgs_monitoring_locations.load_usgs_monitoring_locations.load_usgs_monitoring_locations", fake_load)
+    monkeypatch.setattr("src.usgs_monitoring_locations.run_usgs_monitoring_locations.load_usgs_monitoring_locations", fake_load)
     load_task(df, session_factory=None, metadata=None)
     assert called.get("called", False)
