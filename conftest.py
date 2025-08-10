@@ -1,16 +1,17 @@
 #conftest.py
+
 import sys
 import os
 import logging
 import pytest
 import pandas as pd
+from src.utils.config import Config, DBConfig
 
-# Add the absolute path to 'src' directory to sys.path for test imports
-SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "src"))
+# Add 'src' dir to sys.path for test imports
+SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 if SRC_PATH not in sys.path:
     sys.path.insert(0, SRC_PATH)
 
-# Named logger for tests
 logger = logging.getLogger("usgs_test_logger")
 logger.setLevel(logging.DEBUG)
 
@@ -26,12 +27,21 @@ def configure_test_logger():
     return logger
 
 @pytest.fixture
-def mock_config():
-    return {
-        "usgs": {
-            "monitoring_locations_url": "https://example.com/api/mock"
-        }
-    }
+def mock_config(tmp_path):
+    # Return a full Config object, no nested dicts
+    return Config(
+        monitoring_locations_url="https://example.com/api/mock",
+        output_directory=str(tmp_path / "output"),
+        filename_pattern="mock_pattern_{timestamp}.json",
+        timestamp_format="%Y%m%d_%H%M%S",
+        db=DBConfig(
+            user="mock_user",
+            password="mock_pass",
+            host="localhost",
+            port=5432,
+            database="mock_db"
+        )
+    )
 
 @pytest.fixture
 def sample_raw_usgs_data():
@@ -70,3 +80,20 @@ def expected_clean_dataframe():
         "inventory_date": pd.Timestamp("2022-01-01"),
         "id": "12345"
     }])
+
+@pytest.fixture
+def fake_config(tmp_path):
+    # Same as mock_config, just another example
+    return Config(
+        monitoring_locations_url="http://fake-url",
+        output_directory=str(tmp_path),
+        filename_pattern="usgs_monitoring_locations_{timestamp}.parquet",
+        timestamp_format="%Y%m%d_%H%M%S",
+        db=DBConfig(
+            user="u",
+            password="p",
+            host="h",
+            port=5432,
+            database="d"
+        )
+    )

@@ -1,116 +1,92 @@
-# test_config.py
+# tests/unit/utils/test_config.py
+
+import textwrap
 import pytest
-from unittest.mock import mock_open, patch
 from pydantic import ValidationError
-from src.utils.config import load_config, load_yaml_config, deep_merge
+from src.utils.config import load_config, load_yaml_config, Config, DBConfig
 
-@pytest.fixture(autouse=True)
-def clear_env_vars(monkeypatch):
-    # Clear env vars before each test to avoid side effects
-    for var in [
-        "API_URL", "API_KEY", "OUTPUT_DIR",
-        "FILENAME_PATTERN", "TIMESTAMP_FORMAT"
-    ]:
-        monkeypatch.delenv(var, raising=False)
-    yield
+@pytest.fixture
+def env_vars(monkeypatch):
+    """Set environment variables for Config, including nested DB fields."""
+    monkeypatch.setenv("API_URL", "http://example.com/api")
+    monkeypatch.setenv("OUTPUT_DIR", "/tmp/output")
+    monkeypatch.setenv("FILENAME_PATTERN", "file_{date}.txt")
+    monkeypatch.setenv("TIMESTAMP_FORMAT", "%Y-%m-%d")
 
+    # Nested DB config vars using double underscore separator
+    monkeypatch.setenv("DB__USER", "testuser")
+    monkeypatch.setenv("DB__PASSWORD", "testpass")
+    monkeypatch.setenv("DB__HOST", "localhost")
+    monkeypatch.setenv("DB__PORT", "5432")  # keep as string; Pydantic converts to int
+    monkeypatch.setenv("DB__DATABASE", "testdb")
 
-def test_deep_merge_basic():
-    d1 = {"a": 1, "b": {"c": 2}}
-    d2 = {"b": {"d": 3}, "e": 4}
-    merged = deep_merge(d1, d2)
-    assert merged == {"a": 1, "b": {"c": 2, "d": 3}, "e": 4}
-    assert d1 == {"a": 1, "b": {"c": 2}}
-    assert d2 == {"b": {"d": 3}, "e": 4}
+def test_load_yaml_config_reads_file(tmp_path):
+    yaml_content = textwrap.dedent("""
+        usgs:
+          monitoring_locations_url: "http://example.com/yaml"
+        output:
+          directory: "/data"
+          filename_pattern: "out_{date}.csv"
+          timestamp_format: "%Y%m%d"
+        db:
+          user: "yamluser"
+          password: "yamlpass"
+          host: "yamlhost"
+          port: 1234
+          database: "yamldb"
+    """)
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(yaml_content)
 
+    config_data = load_yaml_config(str(yaml_file))
+    assert config_data["usgs"]["monitoring_locations_url"] == "http://example.com/yaml"
+    assert config_data["db"]["user"] == "yamluser"
+    assert config_data["db"]["port"] == 1234
 
-def test_load_yaml_config_success():
-    yaml_content = """
-usgs:
-  monitoring_locations_url: "https://yaml-url.com"
-output:
-  directory: "yaml_dir"
-  filename_pattern: "file_{timestamp}.json"
-  timestamp_format: "%Y-%m-%d"
-"""
-    m = mock_open(read_data=yaml_content)
-    with patch("builtins.open", m):
-        config = load_yaml_config("dummy_path.yaml")
-    assert config["usgs"]["monitoring_locations_url"] == "https://yaml-url.com"
-    assert config["output"]["directory"] == "yaml_dir"
+def test_load_config_merges_yaml_and_env(env_vars, tmp_path):
+    yaml_content = textwrap.dedent("""
+        usgs:
+          monitoring_locations_url: "http://yaml-override.com"
+        output:
+          directory: "/yaml/output"
+        db:
+          user: "yamluser"
+    """)
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(yaml_content)
 
+    config = load_config(str(yaml_file))
 
-def test_load_yaml_config_file_not_found():
-    config = load_yaml_config("nonexistent.yaml")
-    assert config == {}
+    # YAML should override env vars
+    assert config.monitoring_locations_url == "http://yaml-override.com"
+    assert config.output_directory == "/yaml/output"
+    assert config.db.user == "yamluser"
 
+    # Fallback to env vars for missing YAML fields
+    assert config.filename_pattern == "file_{date}.txt"
+    assert config.db.password == "testpass"
 
-def test_load_yaml_config_invalid_yaml():
-    bad_yaml = "bad: [unbalanced brackets"
-    m = mock_open(read_data=bad_yaml)
-    with patch("builtins.open", m):
-        config = load_yaml_config("dummy.yaml")
-    assert config == {}
-
-
-def test_load_config_env_overrides(monkeypatch):
-    monkeypatch.setenv("API_URL", "https://env-url.com")
-    monkeypatch.setenv("API_KEY", "secret-key")
-    monkeypatch.setenv("OUTPUT_DIR", "env_dir")
-    monkeypatch.setenv("FILENAME_PATTERN", "env_file_{timestamp}.json")
-    monkeypatch.setenv("TIMESTAMP_FORMAT", "%H%M%S")
-
-    yaml_content = """
-usgs:
-  monitoring_locations_url: "https://yaml-url.com"
-"""
-    m = mock_open(read_data=yaml_content)
-    with patch("builtins.open", m):
-        config = load_config("dummy.yaml")
-
-    # Access nested attributes
-    assert config.usgs.monitoring_locations_url == "https://env-url.com"
-    assert config.api_key == "secret-key"
-    assert config.output.directory == "env_dir"
-    assert config.output.filename_pattern == "env_file_{timestamp}.json"
-    assert config.output.timestamp_format == "%H%M%S"
-
-
-def test_load_config_yaml_only():
-    yaml_content = """
-usgs:
-  monitoring_locations_url: "https://yaml-url.com"
-output:
-  directory: "yaml_dir"
-  filename_pattern: "yaml_file_{timestamp}.json"
-  timestamp_format: "%Y-%m-%d"
-"""
-    m = mock_open(read_data=yaml_content)
-    with patch("builtins.open", m):
-        config = load_config("dummy.yaml")
-
-    assert config.usgs.monitoring_locations_url == "https://yaml-url.com"
-    assert config.api_key is None
-    assert config.output.directory == "yaml_dir"
-    assert config.output.filename_pattern == "yaml_file_{timestamp}.json"
-    assert config.output.timestamp_format == "%Y-%m-%d"
-
-
-def test_load_config_defaults():
+def test_load_config_from_env_only(env_vars):
     config = load_config(None)
-    assert config.usgs.monitoring_locations_url == "https://mock-url.com"
-    assert config.api_key is None
-    assert config.output.directory == "mock_data"
-    assert config.output.filename_pattern == "usgs_monitoring_locations_{timestamp}.json"
-    assert config.output.timestamp_format == "%Y%m%d_%H%M%S"
 
+    assert config.monitoring_locations_url == "http://example.com/api"
+    assert config.output_directory == "/tmp/output"
+    assert config.filename_pattern == "file_{date}.txt"
+    assert config.db.user == "testuser"
+    assert config.db.database == "testdb"
 
-def test_config_validation_error():
-    yaml_content = """
-usgs:
-  monitoring_locations_url: 123
-"""
-    m = mock_open(read_data=yaml_content)
-    with patch("builtins.open", m):
-        with pytest.raises(ValidationError):
-            load_config("dummy.yaml")
+def test_load_config_validation_error(monkeypatch):
+    monkeypatch.delenv("OUTPUT_DIR", raising=False)
+    monkeypatch.delenv("FILENAME_PATTERN", raising=False)
+    monkeypatch.delenv("TIMESTAMP_FORMAT", raising=False)
+    monkeypatch.delenv("DB__USER", raising=False)
+    monkeypatch.delenv("DB__PASSWORD", raising=False)
+    monkeypatch.delenv("DB__HOST", raising=False)
+    monkeypatch.delenv("DB__PORT", raising=False)
+    monkeypatch.delenv("DB__DATABASE", raising=False)
+
+    # Set only one required env var
+    monkeypatch.setenv("API_URL", "http://example.com/api")
+
+    with pytest.raises(ValidationError):
+        load_config(None)
