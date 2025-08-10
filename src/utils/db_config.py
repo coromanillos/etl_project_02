@@ -7,14 +7,25 @@
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from urllib.parse import quote_plus
 from src.utils.config import load_config, Config
+import logging
 
-def get_engine(config: Config = None) -> Engine:
+logger = logging.getLogger(__name__)
+
+def get_engine(config: Config = None, config_path: str = "config/config.yaml") -> Engine:
     if config is None:
-        config = load_config("config/config.yaml")
+        config = load_config(config_path)
 
-    db_url = (
-        f"postgresql://{config.db.user}:{config.db.password}"
-        f"@{config.db.host}:{config.db.port}/{config.db.name}"
-    )
-    return create_engine(db_url)
+    # URL-encode user and password for safety
+    user = quote_plus(config.db.user)
+    password = quote_plus(config.db.password)
+    host = config.db.host
+    port = config.db.port
+    database = config.db.database
+
+    db_url = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+
+    logger.info(f"Creating DB engine with URL: postgresql://{user}:***@{host}:{port}/{database}")
+    engine = create_engine(db_url)
+    return engine

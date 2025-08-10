@@ -11,3 +11,10 @@ output:
   directory: "tests/mock_data"
   filename_pattern: "usgs_monitoring_locations_{timestamp}.json"
   timestamp_format: "%Y%m%d_%H%M%S"
+
+db:
+  user: "u"
+  password: "p"
+  host: "h"
+  port: 5432
+  database: "d"

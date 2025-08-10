@@ -9,6 +9,8 @@ import logging
 import pandas as pd
 from typing import Optional
 from src.utils.config import load_config, Config
+from pathlib import Path
+import glob
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +28,17 @@ def transform_usgs_monitoring_locations(cfg: Optional[Config] = None) -> Optiona
         cfg = load_config("config/config.yaml")
 
     try:
-        raw_path = f"{cfg.output.directory}/{cfg.output.filename_pattern.format(timestamp='*')}"
-        df = pd.read_parquet(raw_path)
-        logger.info(f"Read {len(df)} raw records from {raw_path}")
+        # Find the latest matching parquet file (timestamp wildcard)
+        pattern = Path(cfg.output_directory) / cfg.filename_pattern.format(timestamp="*")
+        matches = glob.glob(str(pattern))
+        if not matches:
+            raise FileNotFoundError(f"No matching parquet file found for pattern: {pattern}")
+
+        latest_file = max(matches, key=Path.stat().st_mtime)
+        logger.info(f"Reading raw data from {latest_file}")
+
+        df = pd.read_parquet(latest_file)
+        logger.info(f"Read {len(df)} raw records")
 
         rename_map = {
             "dec_lat_va": "latitude",
@@ -44,6 +54,7 @@ def transform_usgs_monitoring_locations(cfg: Optional[Config] = None) -> Optiona
         }
         df.rename(columns=rename_map, inplace=True)
 
+        # Convert to correct types
         df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
         df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
         df["elevation_ft"] = pd.to_numeric(df["elevation_ft"], errors="coerce")

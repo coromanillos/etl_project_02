@@ -41,7 +41,8 @@ if __name__ == "__main__":
     config = load_config("config/config.yaml")
     http_client = RequestsHttpClient()
 
-    url = config.usgs.monitoring_locations_url
+    # Updated to use top-level monitoring_locations_url field
+    url = config.monitoring_locations_url
 
     df_extracted = extract_task(url, http_client)
     df_transformed = transform_task(df_extracted, config)

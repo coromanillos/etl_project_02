@@ -2,77 +2,53 @@
 
 import pytest
 import pandas as pd
-from unittest.mock import patch
-from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import transform_usgs_monitoring_locations
-from src.utils.config import Config, DBConfig  # assuming DBConfig is nested inside config.py
+from src.usgs_monitoring_locations import transform_usgs_monitoring_locations as transform_mod
 
+def test_transform_reads_and_cleans_data(fake_config, tmp_path):
+    filename = fake_config.filename_pattern.format(timestamp="20250809_123456")
+    parquet_path = tmp_path / filename
 
-@pytest.fixture
-def sample_parquet(tmp_path):
-    df = pd.DataFrame({
-        "dec_lat_va": [10.0, None],
-        "dec_long_va": [20.0, 30.0],
-        "alt_va": [100, None],
-        "state_cd": ["CA", "TX"],
-        "county_cd": ["001", "002"],
-        "huc_cd": ["01", "02"],
-        "agency_cd": ["A", "B"],
-        "site_no": ["001", "002"],
-        "station_nm": ["Station1", "Station2"],
-        "inventory_dt": ["2020-01-01", None]
+    df_raw = pd.DataFrame({
+        "dec_lat_va": [40.1],
+        "dec_long_va": [-75.1],
+        "alt_va": [100.5],
+        "state_cd": ["PA"],
+        "county_cd": ["001"],
+        "huc_cd": ["020401"],
+        "agency_cd": ["USGS"],
+        "site_no": ["12345"],
+        "station_nm": ["Test Station"],
+        "inventory_dt": ["2025-08-09"]
     })
-    path = tmp_path / "raw.parquet"
-    df.to_parquet(path)
-    return path
+    df_raw.to_parquet(parquet_path)
 
+    df_clean = transform_mod.transform_usgs_monitoring_locations(fake_config)
 
-def make_mock_config(**overrides) -> Config:
-    """
-    Helper to create a minimal valid Config with defaults that work for tests.
-    Allows overriding any field via kwargs.
-    """
-    defaults = dict(
-        monitoring_locations_url="https://mock-url.com",
-        output_directory="/tmp",  # will be overridden per test
-        filename_pattern="raw.parquet",
-        timestamp_format="%Y%m%d_%H%M%S",
-        db=DBConfig(  # supply nested DBConfig so .db.user still works
-            user="test_user",
-            password="test_pass",
-            host="localhost",
-            port="5432",
-            database="test_db"
-        )
-    )
-    defaults.update(overrides)
-    return Config(**defaults)
+    expected_columns = {
+        "latitude", "longitude", "elevation_ft", "state_code",
+        "county_code", "huc_code", "agency_code", "site_number",
+        "station_name", "inventory_date"
+    }
+    assert expected_columns.issubset(df_clean.columns)
 
+    assert df_clean.loc[0, "latitude"] == 40.1
+    assert df_clean.loc[0, "longitude"] == -75.1
+    assert df_clean.loc[0, "elevation_ft"] == 100.5
 
-def test_transform_success(monkeypatch, sample_parquet):
-    mock_config = make_mock_config(
-        output_directory=str(sample_parquet.parent),
-        filename_pattern=sample_parquet.name
-    )
-    monkeypatch.setattr(
-        "src.usgs_monitoring_locations.transform_usgs_monitoring_locations.load_config",
-        lambda path=None: mock_config
-    )
+    assert pd.api.types.is_float_dtype(df_clean["latitude"])
+    assert pd.api.types.is_float_dtype(df_clean["longitude"])
+    assert pd.api.types.is_float_dtype(df_clean["elevation_ft"])
+    assert pd.api.types.is_datetime64_any_dtype(df_clean["inventory_date"])
 
-    result_df = transform_usgs_monitoring_locations()
-    assert "latitude" in result_df.columns
-    assert len(result_df) == 2
-    assert result_df["latitude"].iloc[0] == 10.0
+def test_transform_raises_if_no_file(fake_config, tmp_path):
+    fake_config.output_directory = str(tmp_path)
+    with pytest.raises(FileNotFoundError):
+        transform_mod.transform_usgs_monitoring_locations(fake_config)
 
-
-def test_transform_failure(monkeypatch):
-    mock_config = make_mock_config(
-        output_directory="/non/existent",
-        filename_pattern="missing.parquet"
-    )
-    monkeypatch.setattr(
-        "src.usgs_monitoring_locations.transform_usgs_monitoring_locations.load_config",
-        lambda path=None: mock_config
-    )
+def test_transform_raises_if_file_corrupted(fake_config, tmp_path):
+    filename = fake_config.filename_pattern.format(timestamp="20250809_123456")
+    bad_file = tmp_path / filename
+    bad_file.write_text("this is not a parquet file")
 
     with pytest.raises(Exception):
-        transform_usgs_monitoring_locations()
+        transform_mod.transform_usgs_monitoring_locations(fake_config)
