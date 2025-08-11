@@ -198,27 +198,19 @@ pytest tests/
 
 ## Getting Started
 
-git clone https://github.com/your-username/gis-data-pipeline.git
-cd gis-data-pipeline
-cp .env.example .env
-docker-compose up --build
+This project uses Poetry to manage dependencies and virtual environments. Poetry ensures that everyone working on this project installs exactly the same package versions, avoiding “works on my machine” issues and simplifying setup.
 
-To initialize Airflow:
+More about poetry: https://python-poetry.org/docs/
 
-docker exec -it airflow-webserver airflow db init
-docker exec -it airflow-webserver airflow users create \
-  --username admin --password admin --firstname Data --lastname Engineer --role Admin --email admin@example.com
+To get started:
 
-Access the Airflow UI at http://localhost:8080.
-🏃 Running the Pipeline
-
-Once Airflow is running, trigger the DAG manually or wait for the scheduled run:
-
-    DAG ID: geospatial_pipeline
-
-    Schedule: @daily (customizable via dags/config.py)
-
-    Logs and task statuses are available in the Airflow UI
+```bash
+git clone https://github.com/coromanillos/etl_project_02.git
+cd etl_project_02
+poetry --version || curl -sSL https://install.python-poetry.org | python3 -
+poetry install
+poetry shell
+```
 
 ---
 
@@ -262,6 +254,8 @@ The United States Geological Survey (USGS) provides water-related data through v
 
 # Testing:
 
-  poetry run pytest
+  >> APP_ENV=test poetry run pytest
   
+  pyproject.toml # Poetry dependencies manager (runtime + dev)
+  poetry.lock # Locked versions for reproducibility
 ---

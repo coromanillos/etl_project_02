@@ -1,4 +1,4 @@
-# config.yaml | base config shared by all environments (production, development, testing)
+# config-test.yaml | overrides for testing environment
 
 logging:
   version: 1
@@ -12,21 +12,21 @@ logging:
     console:
       class: logging.StreamHandler
       formatter: json
-      level: INFO
+      level: DEBUG
       stream: ext://sys.stdout
 
   root:
-    level: INFO
+    level: DEBUG
     handlers: [console]
 
 usgs:
   monitoring_locations_url: "https://labs.waterdata.usgs.gov/api/collections/monitoring-locations/items?f=json"
-  request_timeout: 10  # seconds
-  max_retries: 3
+  request_timeout: 5  # faster timeout for tests
+  max_retries: 1
 
 db:
-  user: "cromanillos"
-  password: "werc3871874"
+  user: "test_user"
+  password: "test_password"
   host: "localhost"
   port: 5432
-  database: "monitoring"
+  database: "test_monitoring"
