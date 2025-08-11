@@ -1,3 +1,5 @@
+# Poetry dependencies (runtime + dev)
+
 [project]
 name = "etl-pipeline-02"
 version = "0.1.0"
