@@ -19,14 +19,11 @@ def load_usgs_monitoring_locations(
     metadata: callable
 ) -> None:
     try:
-        # Validate the dataframe
         validate_usgs_monitoring_locations(df)
 
-        # Create DB engine and setup metadata
         engine: Engine = session_factory()
         metadata(engine)
 
-        # Load data into the database
         df.to_sql(
             name="monitoring_locations",
             con=engine,

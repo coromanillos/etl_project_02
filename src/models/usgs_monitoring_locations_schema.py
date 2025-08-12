@@ -6,7 +6,7 @@
 ###########################################
 
 from sqlalchemy import Column, String, Float, Boolean, Date, Text
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from geoalchemy2 import Geometry
 
 Base = declarative_base()
@@ -14,8 +14,8 @@ Base = declarative_base()
 class MonitoringLocation(Base):
     __tablename__ = 'monitoring_locations'
 
-    id = Column(String, primary_key=True)  # e.g., "USGS-02238500"
-    agency_code = Column(String, nullable=False)
+    id = Column(String(15), primary_key=True)  # e.g., "USGS-02238500"
+    agency_code = Column(String(100), nullable=False)
     agency_name = Column(String)
     monitoring_location_number = Column(String)
     monitoring_location_name = Column(String)

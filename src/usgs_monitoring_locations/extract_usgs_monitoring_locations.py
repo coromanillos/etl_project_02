@@ -11,8 +11,9 @@ from typing import Optional, Protocol
 import pandas as pd
 from src.utils.serialization import save_dataframe_to_parquet
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)  
 
+# Protocol definition* (research this)
 class HttpClient(Protocol):
     def get(self, url: str) -> dict:
         ...

@@ -1,41 +1,43 @@
 # tests/unit/common/test_http_client.py
 
+# tests/unit/test_http_client.py
+
 import pytest
 from unittest.mock import patch, Mock
 from src.common.http_client import RequestsHttpClient
+import requests
 
+@pytest.fixture
+def client():
+    return RequestsHttpClient()
 
 @patch("src.common.http_client.requests.get")
-def test_get_success(mock_get):
-    # Arrange
-    url = "https://example.com/data"
-    expected_json = {"key": "value"}
-
+def test_get_success(mock_get, client):
+    # Arrange: prepare mock response
     mock_response = Mock()
-    mock_response.json.return_value = expected_json
-    mock_response.raise_for_status.return_value = None
+    mock_response.raise_for_status.return_value = None  # no exception raised
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"key": "value"}
     mock_get.return_value = mock_response
 
-    client = RequestsHttpClient()
-
     # Act
-    result = client.get(url)
+    url = "http://fakeurl.test/api"
+    response = client.get(url)
 
     # Assert
     mock_get.assert_called_once_with(url, params=None, headers=None, timeout=10)
-    assert result == expected_json
-
+    assert response == {"key": "value"}
 
 @patch("src.common.http_client.requests.get")
-def test_get_raises_exception(mock_get):
-    # Arrange
-    url = "https://example.com/data"
+def test_get_http_error_raises(mock_get, client):
+    # Arrange: simulate an HTTP error
     mock_response = Mock()
-    mock_response.raise_for_status.side_effect = Exception("HTTP error")
+    mock_response.raise_for_status.side_effect = requests.HTTPError("Error 404")
     mock_get.return_value = mock_response
 
-    client = RequestsHttpClient()
+    url = "http://fakeurl.test/api"
 
     # Act & Assert
-    with pytest.raises(Exception, match="HTTP error"):
+    with pytest.raises(requests.HTTPError):
         client.get(url)
+    mock_get.assert_called_once_with(url, params=None, headers=None, timeout=10)
