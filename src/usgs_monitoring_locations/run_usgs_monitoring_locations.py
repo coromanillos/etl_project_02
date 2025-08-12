@@ -12,7 +12,9 @@ from src.usgs_monitoring_locations.transform_usgs_monitoring_locations import tr
 from src.usgs_monitoring_locations.load_usgs_monitoring_locations import load_usgs_monitoring_locations
 from src.utils.config import load_config, Config
 from src.common.http_client import RequestsHttpClient
+from utils.logging_config import setup_logging
 
+setup_logging()  # setup_logging is called once in the wrapper, because it is the main entrypoint
 logger = logging.getLogger(__name__)
 
 def extract_task(url: str, http_client) -> pd.DataFrame:
@@ -41,9 +43,8 @@ if __name__ == "__main__":
     config = load_config("config/config.yaml")
     http_client = RequestsHttpClient()
 
-    # Updated to use top-level monitoring_locations_url field
     url = config.monitoring_locations_url
 
     df_extracted = extract_task(url, http_client)
     df_transformed = transform_task(df_extracted, config)
-    load_task(df_transformed, session_factory=..., metadata=...)  # Fill in your DB session and metadata
+    load_task(df_transformed, session_factory=..., metadata=...)  # supply your db session and metadata

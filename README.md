@@ -259,3 +259,27 @@ The United States Geological Survey (USGS) provides water-related data through v
   pyproject.toml # Poetry dependencies manager (runtime + dev)
   poetry.lock # Locked versions for reproducibility
 ---
+
+# Notes:
+
+08/12/25
+
+- **Notes**  
+  Before extracting data from a dataset, you should understand what the
+  data access pattern is. Is it exhaustible data? Is it a recent-window 
+  API that shows data from right now? What parameters are offered that 
+  allow you to specifiy what data you pull? What data do you WANT to pull?
+  What does the raw data look like, and what do you expect it to look like
+  after being processed? 
+
+  Go back and identify what you want to get from the USGS monitoring-locations endpoint. Adjust the API_URL, then refactor the extract, transform and schema scripts as needed. Only after that, can you move on to unit tests, integration tests, and Github Action CI/CD implementation.
+
+  - review API and extracted data
+  - extract.py
+  - http_client and .env | API_URL= in .env
+  - transform.py 
+  - model/ ORM schema
+  - unit tests
+  - integration tests
+  - Github Action CI/CD
+---

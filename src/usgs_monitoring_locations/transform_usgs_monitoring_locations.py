@@ -15,20 +15,10 @@ import glob
 logger = logging.getLogger(__name__)
 
 def transform_usgs_monitoring_locations(cfg: Optional[Config] = None) -> Optional[pd.DataFrame]:
-    """
-    Transform and clean raw USGS monitoring location data.
-
-    Args:
-        cfg: Config object with paths and settings.
-
-    Returns:
-        pd.DataFrame or None: Transformed dataframe if successful, else None.
-    """
     if cfg is None:
         cfg = load_config("config/config.yaml")
 
     try:
-        # Find the latest matching parquet file (timestamp wildcard)
         pattern = Path(cfg.output_directory) / cfg.filename_pattern.format(timestamp="*")
         matches = glob.glob(str(pattern))
         if not matches:
@@ -54,7 +44,6 @@ def transform_usgs_monitoring_locations(cfg: Optional[Config] = None) -> Optiona
         }
         df.rename(columns=rename_map, inplace=True)
 
-        # Convert to correct types
         df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
         df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
         df["elevation_ft"] = pd.to_numeric(df["elevation_ft"], errors="coerce")

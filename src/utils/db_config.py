@@ -11,7 +11,7 @@ from urllib.parse import quote_plus
 from src.utils.config import load_config, Config
 import logging
 
-logger = logging.getLogger(__name__)
+etLogger(__name__)
 
 def get_engine(config: Config = None, config_path: str = "config/config.yaml") -> Engine:
     if config is None:
