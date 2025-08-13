@@ -1,42 +1,59 @@
 ###########################################
 # Name: extract_usgs_monitoring_locations.py
-# Author: Christopher O. Romanillos
-# Description: Extract data from USGS REST API
-# Endpoint: monitoring_locations
-# Date: 08/02/25
+# Author: Christopher O. Romanillos (Refactored by ChatGPT)
+# Description: Stream USGS monitoring locations from API with per-page processing
+# Date: 08/13/25
 ###########################################
 
 import logging
-from typing import Optional, Protocol
+from typing import Protocol, Dict, Generator
 import pandas as pd
-from src.utils.serialization import save_dataframe_to_parquet
 
-logger = logging.getLogger(__name__)  
+logger = logging.getLogger(__name__)
 
-# Protocol definition* (research this)
 class HttpClient(Protocol):
-    def get(self, url: str) -> dict:
+    def get(self, url: str, params: dict = None) -> dict:
         ...
 
-def extract_usgs_monitoring_locations(url: str, client: HttpClient) -> Optional[pd.DataFrame]:
+def extract_usgs_monitoring_locations_stream(
+    url: str, client: HttpClient, limit: int = 10000
+) -> Generator[pd.DataFrame, None, None]:
+    """
+    Stream paginated USGS monitoring locations data.
+
+    Args:
+        url: API endpoint
+        client: HTTP client implementing .get()
+        limit: number of records per request
+
+    Yields:
+        DataFrame for each page of results
+    """
     if not url:
-        logger.error("USGS monitoring_locations_url is missing.")
-        return None
+        logger.error("API URL missing for extraction")
+        return
 
-    try:
-        logger.info(f"Fetching URL: {url}")
-        response = client.get(url)
-        features = response.get("features", [])
-        if not features:
-            logger.warning("No features found in USGS response")
-            return None
+    offset = 0
+    while True:
+        params = {"f": "json", "limit": limit, "offset": offset}
+        try:
+            logger.info(f"Fetching records with offset={offset}")
+            response = client.get(url, params=params)
+            features = response.get("features", [])
+            if not features:
+                logger.info("No more data returned from API.")
+                break
 
-        records = [
-            {**feature.get("properties", {}), "id": feature["id"]}
-            for feature in features
-        ]
-        return pd.DataFrame.from_records(records)
+            records = [
+                {**feature.get("properties", {}), "id": feature.get("id")}
+                for feature in features
+            ]
+            yield pd.DataFrame.from_records(records)
 
-    except Exception as e:
-        logger.exception(f"Failed to extract monitoring locations: {e}")
-        return None
+            if len(features) < limit:
+                break  # last page reached
+            offset += limit
+
+        except Exception as e:
+            logger.exception(f"Failed extraction at offset {offset}: {e}")
+            break
