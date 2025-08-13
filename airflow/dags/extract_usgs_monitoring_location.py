@@ -1,19 +1,16 @@
 #####################################################################
-# Name: extract_usgs_monitoring_locations.py
-# Author: Christopher O. Romanillos
-# Description: USGS monitoring_location ETL DAG orchestration script
-# Refactored: 08/03/25
+# Name: usgs_monitoring_etl_streaming.py
+# Author: Christopher O. Romanillos (Refactored by ChatGPT)
+# Description: Streaming ETL DAG for USGS monitoring locations
+# Date: 08/13/25
 #####################################################################
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 from datetime import timedelta, datetime
-import pandas as pd
-from src.usgs_monitoring_locations.wrapper_etl import extract_task, transform_task, load_task
+from src.usgs_monitoring_locations.wrapper_etl_streaming import run_streaming_etl
 from utils.config import get_config
-from utils.db_config import get_engine
-from models.monitoring_schema import metadata
 from src.common.http_client import RequestsHttpClient  
 
 default_args = {
@@ -23,47 +20,27 @@ default_args = {
 }
 
 with DAG(
-    dag_id="usgs_monitoring_etl_v2",
+    dag_id="usgs_monitoring_etl_streaming",
     start_date=datetime(2025, 8, 1),
     schedule_interval="@daily",
     catchup=False,
     default_args=default_args,
     tags=["usgs", "etl", "monitoring"],
-    description="ETL pipeline for USGS monitoring locations using modern refactored scripts.",
+    description="Streaming ETL pipeline for USGS monitoring locations",
 ) as dag:
 
-    def run_extract(**kwargs):
+    def etl_task(**kwargs):
+        """
+        Run the streaming ETL task. 
+        Handles per-page extraction and transformation.
+        """
         config = get_config()
         http_client = RequestsHttpClient()
-        url = config.monitoring_locations_url
+        run_streaming_etl(url=config.monitoring_locations_url, http_client=http_client)
 
-        df = extract_task(url, http_client)
-        kwargs["ti"].xcom_push(key="df", value=df.to_dict(orient="records"))
-
-    def run_transform(**kwargs):
-        records = kwargs["ti"].xcom_pull(task_ids="extract_usgs_data", key="df")
-        df = pd.DataFrame(records)
-        transformed_df = transform_task(df)
-        kwargs["ti"].xcom_push(key="df_transformed", value=transformed_df.to_dict(orient="records"))
-
-    def run_load(**kwargs):
-        records = kwargs["ti"].xcom_pull(task_ids="transform_usgs_data", key="df_transformed")
-        df = pd.DataFrame(records)
-        load_task(df, session_factory=get_engine, metadata=metadata)
-
-    extract = PythonOperator(
-        task_id="extract_usgs_data",
-        python_callable=run_extract,
+    streaming_etl = PythonOperator(
+        task_id="run_streaming_etl",
+        python_callable=etl_task,
     )
 
-    transform = PythonOperator(
-        task_id="transform_usgs_data",
-        python_callable=run_transform,
-    )
-
-    load = PythonOperator(
-        task_id="load_usgs_data",
-        python_callable=run_load,
-    )
-
-    extract >> transform >> load
+    streaming_etl

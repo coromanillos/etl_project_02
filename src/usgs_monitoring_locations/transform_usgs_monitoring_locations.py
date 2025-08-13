@@ -1,57 +1,64 @@
 ###########################################
 # Name: transform_usgs_monitoring_locations.py
-# Author: Christopher O. Romanillos
-# Description: Transform/Flatten + Clean USGS monitoring locations raw data
-# Date: 08/03/25
+# Author: Christopher O. Romanillos (Refactored by ChatGPT)
+# Description: Transform USGS monitoring location data per page for streaming ETL
+# Date: 08/13/25
 ###########################################
 
 import logging
 import pandas as pd
-from typing import Optional
-from src.utils.config import load_config, Config
-from pathlib import Path
-import glob
+import io
 
 logger = logging.getLogger(__name__)
 
-def transform_usgs_monitoring_locations(cfg: Optional[Config] = None) -> Optional[pd.DataFrame]:
-    if cfg is None:
-        cfg = load_config("config/config.yaml")
+RENAME_MAP = {
+    "dec_lat_va": "latitude",
+    "dec_long_va": "longitude",
+    "alt_va": "elevation_ft",
+    "state_cd": "state_code",
+    "county_cd": "county_code",
+    "huc_cd": "huc_code",
+    "agency_cd": "agency_code",
+    "site_no": "site_number",
+    "station_nm": "station_name",
+    "inventory_dt": "inventory_date"
+}
 
-    try:
-        pattern = Path(cfg.output_directory) / cfg.filename_pattern.format(timestamp="*")
-        matches = glob.glob(str(pattern))
-        if not matches:
-            raise FileNotFoundError(f"No matching parquet file found for pattern: {pattern}")
+def transform_usgs_monitoring_locations_page(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transform a single page of monitoring location data.
 
-        latest_file = max(matches, key=Path.stat().st_mtime)
-        logger.info(f"Reading raw data from {latest_file}")
+    Args:
+        df: Raw page DataFrame from extractor
 
-        df = pd.read_parquet(latest_file)
-        logger.info(f"Read {len(df)} raw records")
-
-        rename_map = {
-            "dec_lat_va": "latitude",
-            "dec_long_va": "longitude",
-            "alt_va": "elevation_ft",
-            "state_cd": "state_code",
-            "county_cd": "county_code",
-            "huc_cd": "huc_code",
-            "agency_cd": "agency_code",
-            "site_no": "site_number",
-            "station_nm": "station_name",
-            "inventory_dt": "inventory_date"
-        }
-        df.rename(columns=rename_map, inplace=True)
-
-        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-        df["elevation_ft"] = pd.to_numeric(df["elevation_ft"], errors="coerce")
-        df["inventory_date"] = pd.to_datetime(df["inventory_date"], errors="coerce")
-
-        logger.info(f"Transformed data: {df.shape[0]} records, {df.shape[1]} columns")
+    Returns:
+        Transformed DataFrame
+    """
+    if df.empty:
         return df
 
-    except Exception as e:
-        logger.error(f"Failed to transform USGS monitoring locations: {e}", exc_info=True)
-        raise
+    df.rename(columns=RENAME_MAP, inplace=True)
+
+    for col in ["latitude", "longitude", "elevation_ft"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if "inventory_date" in df.columns:
+        df["inventory_date"] = pd.to_datetime(df["inventory_date"], errors="coerce")
+
+    return df
+
+def transform_and_serialize_page(df: pd.DataFrame) -> bytes:
+    """
+    Transform and serialize DataFrame to Parquet bytes for upload.
+
+    Args:
+        df: Raw DataFrame
+
+    Returns:
+        Bytes of Parquet file
+    """
+    transformed_df = transform_usgs_monitoring_locations_page(df)
+    parquet_buffer = io.BytesIO()
+    transformed_df.to_parquet(parquet_buffer, index=False)
+    return parquet_buffer.getvalue()
