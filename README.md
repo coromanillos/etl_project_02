@@ -12,9 +12,7 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - [Project Goals](#project-goals)
 - [Tech Stack](#tech-stack)
 - [Pipeline Architecture](#pipeline-architecture)
-- [Key Features](#key-features)
-- [Spatial API Server (Planned)](#spatial-api-server-planned)
-- [Example Spatial Analysis Tasks (Planned)](#example-spatial-analysis-tasks-planned)
+- [USGS API Endpoints](#usgs-api-endpoints)
 - [Testing](#testing)
 - [Mocked / Proprietary Replacements](#mocked--proprietary-replacements)
 - [Future Enhancements](#future-enhancements)
@@ -39,21 +37,12 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 
 ## Tech Stack
 
-| Layer               | Technology                            | Purpose                                  |
-|---------------------|----------------------------------------|------------------------------------------|
-| Language            | Python 3.10+                           | Core scripting (OOP structured) ✅        |
-| Orchestration       | Apache Airflow                         | DAGs and scheduling                      |
-| Containerization    | Docker, Docker Compose                 | Local dev & deployment                   |
-| Spatial ETL         | GeoPandas, Shapely, Fiona, Pyproj      | Geospatial parsing & processing          |
-| Data Store          | PostgreSQL + PostGIS                   | Spatially-aware relational DB            |
-| REST API Server     | FastAPI or Flask (Planned) ✅          | Serve spatial queries via endpoints      |
-| Spatial Analysis    | Shapely, PostGIS functions ✅           | Buffers, joins, intersections, etc.      |
-| Cloud Storage       | AWS S3 (optional)                      | Data lake export                         |
-| Public APIs         | USGS, OpenStreetMap, Natural Earth     | Geo data sources                         |
-| Alerting            | Slack Webhooks (Free Tier)             | Pipeline status notifications            |
-| Testing             | pytest                                 | Unit and integration testing             |
-| Monitoring          | Airflow Logs + Slack Alerts            | Observability                            |
-| Front-End Mapping   | Leaflet.js or Folium (Planned) ✅       | Visualize output data                    |
+- Language: Python, SQL
+- Containerization/Orchestration: Docker/Airflow
+- Data Store: PostgreSQL
+- Cloud Provider: AWS 
+- API endpoints: api.waterdata.usgs.gov
+  - Latest Continuous Values, Daily Values, Monitoring Locations, Time Series Metadata, USGS Water Data Statistics
 
 ---
 
@@ -61,7 +50,7 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 
 ```plaintext
 ┌──────────────────┐
-│ Public Geo APIs  │  ← (e.g., USGS, OSM, Natural Earth)
+│ Public Geo APIs  │  ← (USGS)
 └────────┬─────────┘
          ▼
 ┌──────────────────┐
@@ -89,54 +78,94 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 │ Export to S3 as Parquet    │ (Optional)
 └────────────────────────────┘
 
-└────────────────────────────┘
 ```
 
 --- 
 
-Key Features
+## USGS API Endpoints
 
-    Modular Airflow DAGs for staging ETL steps
+This project integrates five key endpoints from the USGS Water Data API.
+They share common identifiers (e.g., id, monitoring_location_id, agency_code) that enable table joins for advanced analysis.
 
-    Geospatial data validation: CRS, geometry integrity, schema
+1. Monitoring Locations
 
-    CRS Handling: Normalize geometries to EPSG:4326
+Endpoint: /collections/monitoring-locations/items
 
-    Local + optional cloud storage (S3)
+Purpose: Master list of water monitoring stations with metadata (coordinates, agency, site type, HUC).
 
-    Logging: Airflow logs + Slack alerts
+Key Fields:
 
-    ✅ Object-oriented Python modules used for pipeline stages
+id (Primary Key)
 
-    ✅ Simulated API server to access spatial datasets via REST endpoints
+agency_code
 
-    ✅ Support for spatial joins (e.g., pipelines near roads) and buffering tasks
+Use Cases: Base reference table for joins with measurement datasets.
 
----
+2. Daily
 
-## Spatial API Server (Planned)
+Endpoint: /collections/daily/items
 
-The FastAPI service (under /api/) will expose endpoints for:
+Purpose: Historical daily aggregated values (streamflow, gage height, temperature).
 
-    /roads-near-pipelines?distance=100: returns all roads within 100 meters of pipeline features
+Key Fields:
 
-    /assets/geojson: return full feature sets in GeoJSON format for download or mapping
+monitoring_location_id (FK → monitoring-locations.id)
 
-    /metrics: returns spatial quality checks (e.g., invalid geometries, CRS mismatches)
+observed_property_id
 
----
+Use Cases: Seasonal trend analysis, long-term water resource planning.
 
-## Example Spatial Analysis Tasks (Planned)
+3. Latest Continuous
 
-As part of the transformation phase:
+Endpoint: /collections/latest-continuous/items
 
-    Buffer Zones: Identify assets within 100m of critical infrastructure
+Purpose: Real-time continuous sensor data (15–60 min intervals).
 
-    Spatial Joins: Merge attributes between overlapping layers (e.g., pipes + roads)
+Key Fields:
 
-    Filtering by Geometry Type: Extract only LineString or Polygon features
+monitoring_location_id (FK → monitoring-locations.id)
 
-    PostGIS Spatial Queries: Perform joins and analytics directly in SQL
+observed_property_id
+
+Use Cases: Flood alerts, operational dashboards, drought monitoring.
+
+4. Site Observations
+
+Endpoint: /collections/site-observations/items
+
+Purpose: Inventory of available parameters and time ranges per site.
+
+Key Fields:
+
+monitoring_location_id (FK → monitoring-locations.id)
+
+observed_property_id
+
+Use Cases: Filter sites by available measurement types before pulling data.
+
+5. Statistics
+
+Endpoint: /collections/statistics/items
+
+Purpose: Statistical summaries (percentiles, medians, counts) for observed variables.
+
+Key Fields:
+
+monitoring_location_id (FK → monitoring-locations.id)
+
+observed_property_id
+
+Use Cases: Identify extreme values, variability patterns, baseline comparisons.
+
+Example Spatial Analysis Tasks
+
+Buffer Zones: Identify infrastructure within risk zones
+
+Spatial Joins: Merge site metadata with time series measurements
+
+Filtering: Select only stations measuring specific parameters
+
+PostGIS Queries: Aggregate water levels by watershed and season
 
 ---
 
