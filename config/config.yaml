@@ -1,5 +1,10 @@
 # config.yaml | base config shared by all environments (production, development, testing)
 
+paths:
+  raw_data: "./data/raw_data"
+  prepared_data: "./data/prepared_data"
+
+# Not yet implemented --------------------------
 logging:
   version: 1
   disable_existing_loggers: false
@@ -18,15 +23,18 @@ logging:
   root:
     level: INFO
     handlers: [console]
-
+# ----------------------------------------------
 usgs:
-  monitoring_locations_url: "https://labs.waterdata.usgs.gov/api/collections/monitoring-locations/items?f=json"
-  request_timeout: 10  # seconds
-  max_retries: 3
+  monitoring-locations:
+    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json"
+    limit: 10000
+    request_timeout: 10
+    max_retries: 3
+    timestamp_format: "%Y%m%d_%H%M%S"
 
 db:
   user: "cromanillos"
-  password: "werc3871874"
+  password: "anypass"
   host: "localhost"
   port: 5432
   database: "monitoring"
