@@ -55,7 +55,7 @@ class MonitoringLocation(Base):
     uses_daylight_savings = Column(String)
     construction_date = Column(String)
 
-    aquifer_code = Column(String)
+    aquifer_code = Column(St ring)
     national_aquifer_code = Column(String)
     aquifer_type_code = Column(String)
 
