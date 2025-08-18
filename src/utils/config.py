@@ -2,9 +2,11 @@
 # Name: config.py
 # Author: Christopher O. Romanillos
 # Description: Central config loader using Pydantic with YAML
-# Date: 08/16/25
+#   Environment-aware and CI/CD ready
+# Date: 08/17/25
 #####################################################################
 
+import os
 import logging
 import logging.config
 from pathlib import Path
@@ -63,7 +65,7 @@ def load_yaml_config(path: Optional[str]) -> Dict[str, Any]:
         with open(path, "r") as f:
             cfg = yaml.safe_load(f) or {}
             logger.info(f"Loaded YAML config from {path}")
-            # Normalize keys for Pydantic compatibility
+            # Normalize keys for Pydantic
             if "usgs" in cfg and "monitoring-locations" in cfg["usgs"]:
                 cfg["usgs"]["monitoring_locations"] = cfg["usgs"].pop("monitoring-locations")
             return cfg
@@ -78,10 +80,29 @@ def load_yaml_config(path: Optional[str]) -> Dict[str, Any]:
 # Load & validate config
 # ----------------------
 def load_config(path: Optional[str] = None) -> Config:
+    # Environment-aware YAML selection
+    if not path:
+        env = os.getenv("APP_ENV", "prod").lower()
+        project_root = Path(__file__).resolve().parent.parent
+        config_dir = project_root / "config"
+        path = config_dir / f"config-{env}.yaml" if env in ("dev", "test") else config_dir / "config.yaml"
+
     yaml_cfg = load_yaml_config(path)
+
+    # Apply environment variable overrides
+    if os.getenv("RAW_DATA_PATH"):
+        yaml_cfg.setdefault("paths", {})["raw_data"] = os.getenv("RAW_DATA_PATH")
+    if os.getenv("API_URL"):
+        yaml_cfg.setdefault("usgs", {}).setdefault("monitoring_locations", {})["base_url"] = os.getenv("API_URL")
+    if os.getenv("DB_USER"):
+        yaml_cfg.setdefault("db", {})["user"] = os.getenv("DB_USER")
+    if os.getenv("DB_PASSWORD"):
+        yaml_cfg.setdefault("db", {})["password"] = os.getenv("DB_PASSWORD")
+
     try:
         cfg = Config(**yaml_cfg)
         logger.info("Configuration validated successfully.")
+
         # Initialize logging immediately if logging config exists
         if cfg.logging:
             logging.config.dictConfig(cfg.logging)
