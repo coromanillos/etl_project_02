@@ -24,6 +24,7 @@ logging:
     level: INFO
     handlers: [console]
 # ----------------------------------------------
+
 usgs:
   monitoring-locations:
     base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json"

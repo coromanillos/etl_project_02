@@ -1,32 +1,35 @@
 #####################################################################
 # Name: extract_monitoring_locations.py
 # Author: Christopher O. Romanillos
-# Description: Extract all USGS monitoring locations and save raw JSON
-# Date: 08/16/25
+# Description: Extract all USGS monitoring locations and save raw Parquet
+# Date: 08/17/25
 #####################################################################
 
 import logging
 from pathlib import Path
 from datetime import datetime
-import json
 import requests
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 def extract_all_monitoring_locations(config):
     """
-    Full extract fo  monitoring locations from the USGS API using pagination,
-    then save each page to a timestamped JSON file in the raw_data directory.
+    Full extract of monitoring locations from the USGS API using pagination,
+    then save each page to a timestamped Parquet file in the raw_data directory.
     """
-    ml_cfg = config.usgs.monitoring_locations
+    ml_config = config.usgs.monitoring_locations
     raw_data_dir = Path(config.paths.raw_data)
     raw_data_dir.mkdir(parents=True, exist_ok=True)
 
-    limit = ml_cfg.limit
+    limit = ml_config.limit
     offset = 0
-    max_retries = ml_cfg.max_retries
-    timeout = ml_cfg.request_timeout
-    base_url = ml_cfg.base_url 
+    max_retries = ml_config.max_retries
+    timeout = ml_config.request_timeout
+    base_url = ml_config.base_url 
+
+    # Collect all records here
+    all_records = []
 
     while True:
         url = f"{base_url}&offset={offset}&limit={limit}"
@@ -50,13 +53,20 @@ def extract_all_monitoring_locations(config):
             logger.info("No more data returned; extraction complete")
             break
 
-        # Save raw data to file with timestamp
-        timestamp = datetime.now().strftime(ml_cfg.timestamp_format)
-        file_path = raw_data_dir / f"monitoring_locations_{timestamp}_offset{offset}.json"
-        with open(file_path, "w") as f:
-            json.dump(data, f)
-        logger.info(f"Saved {len(features)} records to {file_path.name}")
+        # Append all records 
+        all_records.extend(features)
 
+        logger.debug(f"Fetched {len(features)} records from offset {offset}")
         offset += limit
+
+    # 🔹 Save all records to unified Parquet file
+    if all_records:
+        df = pd.DataFrame.from_records(all_records)
+        timestamp = datetime.now().strftime(ml_config.timestamp_format)
+        file_path = raw_data_dir / f"monitoring_locations_{timestamp}.parquet"
+        df.to_parquet(file_path, index=False)
+        logger.info(f"Saved unified file with {len(df)} records to {file_path.name}")
+    else:
+        logger.warning("No records extracted; nothing to save.")
 
     logger.info("Full extraction complete")
