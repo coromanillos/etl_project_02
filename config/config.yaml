@@ -4,26 +4,10 @@ paths:
   raw_data: "./data/raw_data"
   prepared_data: "./data/prepared_data"
 
-# Not yet implemented --------------------------
+# Look into CI/CD logging vs. Fluentbit
 logging:
-  version: 1
-  disable_existing_loggers: false
-  formatters:
-    json:
-      class: pythonjsonlogger.jsonlogger.JsonFormatter
-      format: '{"time": "%(asctime)s", "level": "%(levelname)s", "name": "%(name)s", "message": "%(message)s"}'
-
-  handlers:
-    console:
-      class: logging.StreamHandler
-      formatter: json
-      level: INFO
-      stream: ext://sys.stdout
-
-  root:
-    level: INFO
-    handlers: [console]
-# ----------------------------------------------
+  level: "INFO"    # override via LOG_LEVEL in CI/CD
+  format: "json"   # could be "plain" in dev
 
 usgs:
   monitoring-locations:
@@ -34,8 +18,6 @@ usgs:
     timestamp_format: "%Y%m%d_%H%M%S"
 
 db:
-  user: "cromanillos"
-  password: "anypass"
-  host: "localhost"
+  host: "localhost"   # override with DB_HOST in CI/CD
   port: 5432
   database: "monitoring"
