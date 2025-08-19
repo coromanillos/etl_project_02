@@ -131,8 +131,7 @@ def extract_all_monitoring_locations(config: dict, logger, http_client=None) -> 
 
 
 if __name__ == "__main__":
-    yaml_path = get_env_config_path()
-    config = load_yaml_config(yaml_path)
+    config = load_config()
 
     logger = configure_logger(
         __name__,
