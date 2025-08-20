@@ -14,7 +14,16 @@ import logging.config
 from typing import Optional, Dict
 from pythonjsonlogger import jsonlogger
 
-
+"""
+When Config_loader fails to provide a proper logging dict*
+We alrady have config schema validation, that acts as the first line
+of defense, and if the schema validation fails, it already strop the
+project from starting by gracefully throwing a critical error and 
+stopping the project from executing? If it does that, wouldn't this script
+never be run? Bottom line, is it not made obsolete by config_schema?
+Only viable use case is as a failsafe, but realistically should probably
+focus more on ensuring validation is foolproof. 
+"""
 def create_fallback_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
     Create a simple JSON logger to stdout/stderr

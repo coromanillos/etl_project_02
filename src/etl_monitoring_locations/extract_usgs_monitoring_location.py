@@ -1,7 +1,7 @@
 ##################################################################################
 # Name: extract_monitoring_locations.py
 # Author: Christopher O. Romanillos
-# Description: Modular, CI/CD-friendly extraction of USGS monitoring locations
+# Description: Modular extraction of USGS monitoring locations
 # Date: 08/18/25
 ##################################################################################
 
@@ -11,8 +11,6 @@ from typing import List, Dict, Optional
 import pandas as pd
 
 from src.exceptions import ExtractionError, SaveError
-from src.config_loader import get_env_config_path, load_yaml_config
-from src.logging_config import configure_logger
 
 # -----------------------------
 # URL and API Helpers
@@ -29,10 +27,7 @@ def fetch_with_retries(
     logger,
     http_client=None
 ) -> Dict:
-    """
-    Fetch JSON data with retry logic.
-    HTTP client can be injected for testing.
-    """
+    """Fetch JSON data with retry logic."""
     client = http_client or __import__("requests")
     for attempt in range(max_retries):
         try:
@@ -42,6 +37,7 @@ def fetch_with_retries(
         except Exception as e:
             logger.warning(f"Attempt {attempt+1}/{max_retries} failed for {url}: {e}")
     raise ExtractionError(f"Failed to fetch data from {url} after {max_retries} retries")
+
 
 # -----------------------------
 # Data Extraction
@@ -72,6 +68,7 @@ def fetch_all_records(
 
     return all_records
 
+
 # -----------------------------
 # Data Storage
 # -----------------------------
@@ -98,15 +95,12 @@ def save_records_to_parquet(
     except Exception as e:
         raise SaveError(f"Failed to save records to {file_path}: {e}")
 
+
 # -----------------------------
-# Main extraction pipeline
+# Main pipeline
 # -----------------------------
 def extract_all_monitoring_locations(config: dict, logger, http_client=None) -> Optional[Path]:
-    """
-    Full extraction pipeline:
-    - Fetch monitoring locations from USGS API
-    - Save records to Parquet
-    """
+    """Full extraction pipeline for monitoring locations."""
     ml_config = config["usgs"]["monitoring_locations"]
     raw_data_dir = Path(config["paths"]["raw_data"])
 
@@ -128,14 +122,3 @@ def extract_all_monitoring_locations(config: dict, logger, http_client=None) -> 
 
     logger.info("Full extraction complete")
     return file_path
-
-
-if __name__ == "__main__":
-    config = load_config()
-
-    logger = configure_logger(
-        __name__,
-        logging_config=config.get("logging", None)
-    )
-
-    extract_all_monitoring_locations(config, logger)
