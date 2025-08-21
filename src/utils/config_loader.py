@@ -56,7 +56,9 @@ def validate_config(config: Dict[str, Any], schema: Dict[str, Any]) -> None:
                 raise ValueError(f"Key '{key}' must be of type {expected.__name__}, "
                                  f"got {type(config[key]).__name__} instead.")
 
-
+# -----------------------------
+# Main config method
+# -----------------------------
 def load_config() -> Dict[str, Any]:
     """
     Loads and validates YAML config based on APP_ENV.

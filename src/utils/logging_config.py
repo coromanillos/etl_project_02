@@ -24,6 +24,15 @@ never be run? Bottom line, is it not made obsolete by config_schema?
 Only viable use case is as a failsafe, but realistically should probably
 focus more on ensuring validation is foolproof. 
 """
+
+"""
+A class-based approach might be better for logging, move all shared logic into 
+base class, and just override pagination in subclasses...
+
+Current approach of passing logger as an argument into each method is simple and
+effective, but it has the tradeoff of maintainability, overhead, and duplication.
+>> Think on it.
+"""
 def create_fallback_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     """
     Create a simple JSON logger to stdout/stderr

@@ -97,7 +97,7 @@ def save_records_to_parquet(
 
 
 # -----------------------------
-# Main pipeline
+# Main extraction method
 # -----------------------------
 def extract_all_monitoring_locations(config: dict, logger, http_client=None) -> Optional[Path]:
     """Full extraction pipeline for monitoring locations."""
