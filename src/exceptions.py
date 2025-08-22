@@ -16,3 +16,8 @@ class ExtractionError(Exception):
 class SaveError(Exception):
     """Raised when saving data to storage fails."""
     pass
+
+
+class TransformError(Exception):
+    """Raised when data transformation from a raw source fails"""
+    pass
