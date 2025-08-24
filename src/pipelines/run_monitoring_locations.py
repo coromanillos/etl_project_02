@@ -1,7 +1,7 @@
 #####################################################################
 # Name: run_monitoring_locations.py
 # Author: Christopher O. Romanillos 
-# Description: Wrapper for monitoring locations ETL 
+# Description: Entrypoint for monitoring locations ETL 
 # Date: 08/16/25
 #####################################################################
 
