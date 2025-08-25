@@ -6,10 +6,10 @@
 ##################################################################################
 
 from pathlib import Path
-from datetime import datetime
 from typing import List, Dict, Optional
 import pandas as pd
-from src.exceptions import ExtractionError, SaveError
+from src.exceptions import ExtractionError
+from src.utils.file_utils import save_parquet_file  
 
 
 class USGSExtractor:
@@ -19,7 +19,7 @@ class USGSExtractor:
         
         :param config: Full project configuration dictionary
         :param endpoint_key: Key in config['usgs'] (e.g., 'monitoring_locations', 'daily_values', 'parameter_codes')
-        """
+        """ 
         self.config = config
         self.logger = logger
         self.http_client = http_client or __import__("requests")
@@ -28,16 +28,16 @@ class USGSExtractor:
         self.raw_data_dir = Path(config["paths"]["raw_data"])
         self.endpoint_key = endpoint_key
 
-    # -----------------------------
-    # URL Helper
-    # -----------------------------
+    ################################################
+    # URL Helper; Local use only by Extraction phase
+    ################################################
     def build_url(self, offset: int, limit: int) -> str:
         """Construct a paginated USGS API URL."""
         return f"{self.endpoint_config['base_url']}&offset={offset}&limit={limit}"
 
-    # -----------------------------
-    # Fetch with retries
-    # -----------------------------
+    #########################################################
+    # Fetch with retries; Local use only by Extraction phase.
+    #########################################################
     def fetch_with_retries(self, url: str) -> Dict:
         """Fetch JSON data with retry logic."""
         for attempt in range(self.endpoint_config["max_retries"]):
@@ -53,9 +53,9 @@ class USGSExtractor:
             f"Failed to fetch data from {url} after {self.endpoint_config['max_retries']} retries"
         )
 
-    # -----------------------------
+    ###################
     # Fetch all records
-    # -----------------------------
+    ###################
     def fetch_all_records(self) -> List[Dict]:
         """Fetch all records from the USGS API using pagination."""
         offset = 0
@@ -75,26 +75,23 @@ class USGSExtractor:
 
         return all_records
 
-    # -----------------------------
-    # Save to Parquet
-    # -----------------------------
+    ################################
+    # Save to Parquet (thin wrapper)
+    ################################
     def save_to_parquet(self, records: List[Dict]) -> Optional[Path]:
-        """Save records to a timestamped Parquet file."""
+        """Thin wrapper around save_parquet_file utility."""
         if not records:
             self.logger.warning("No records to save")
             return None
 
-        try:
-            df = pd.DataFrame.from_records(records)
-            timestamp = datetime.now().strftime(self.endpoint_config["timestamp_format"])
-            file_path = self.raw_data_dir / f"{self.endpoint_key}_{timestamp}.parquet"
-
-            self.raw_data_dir.mkdir(parents=True, exist_ok=True)
-            df.to_parquet(file_path, index=False)
-            self.logger.info(f"Saved {len(df)} records to {file_path}")
-            return file_path
-        except Exception as e:
-            raise SaveError(f"Failed to save records to {file_path}: {e}")
+        df = pd.DataFrame.from_records(records)
+        return save_parquet_file(
+            df=df,
+            output_dir=self.raw_data_dir,
+            filename_prefix=self.endpoint_key,
+            timestamp_format=self.endpoint_config["timestamp_format"],
+            logger=self.logger,
+        )
 
     # -----------------------------
     # Full extraction pipeline
