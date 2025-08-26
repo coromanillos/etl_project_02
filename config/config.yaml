@@ -4,20 +4,21 @@ paths:
   raw_data: "./data/raw_data"
   prepared_data: "./data/prepared_data"
 
-# Look into CI/CD logging vs. Fluentbit
 logging:
-  level: "INFO"    # override via LOG_LEVEL in CI/CD
-  format: "json"   # could be "plain" in dev
+  level: "${LOG_LEVEL:-INFO}"
+  format: "${LOG_FORMAT:-json}"
 
 usgs:
-  monitoring-locations:
+  monitoring_locations:  # underscores for Python-friendly access
     base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json"
     limit: 10000
     request_timeout: 10
     max_retries: 3
-    timestamp_format: "%Y%m%d_%H%M%S"
+    timestamp_format: "%Y-%m-%dT%H:%M:%S"
 
 db:
-  host: "localhost"   # override with DB_HOST in CI/CD
+  host: "${DB_HOST:-localhost}"
   port: 5432
-  database: "monitoring"
+  database: "${DB_NAME:-monitoring}"
+  user: "${DB_USER:-monitoring_user}"
+  password: "${DB_PASSWORD:-password}"
