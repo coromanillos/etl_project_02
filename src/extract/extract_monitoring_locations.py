@@ -78,6 +78,12 @@ class USGSExtractor:
     ################################
     # Save to Parquet (thin wrapper)
     ################################
+    """
+    I am familiar with Parquet being a more efficient file format for storage and 
+    analytics within cloud providers, AWS/Azure and their data lakes, but I do not 
+    want to risk potential downstream errors and incompatibility concerns between 
+    parquet, postgreSQL and postGIS, so I think we will pivot to using json primarily 
+    """
     def save_to_parquet(self, records: List[Dict]) -> Optional[Path]:
         """Thin wrapper around save_parquet_file utility."""
         if not records:
