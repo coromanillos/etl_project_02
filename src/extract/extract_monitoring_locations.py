@@ -6,10 +6,8 @@
 ##################################################################################
 
 from pathlib import Path
-from typing import List, Dict, Optional
-import pandas as pd
+from typing import List, Dict
 from src.exceptions import ExtractionError
-from src.utils.file_utils import save_parquet_file  
 
 
 class USGSExtractor:
@@ -74,37 +72,3 @@ class USGSExtractor:
             offset += len(features)
 
         return all_records
-
-    ################################
-    # Save to Parquet (thin wrapper)
-    ################################
-    """
-    I am familiar with Parquet being a more efficient file format for storage and 
-    analytics within cloud providers, AWS/Azure and their data lakes, but I do not 
-    want to risk potential downstream errors and incompatibility concerns between 
-    parquet, postgreSQL and postGIS, so I think we will pivot to using json primarily 
-    """
-    def save_to_parquet(self, records: List[Dict]) -> Optional[Path]:
-        """Thin wrapper around save_parquet_file utility."""
-        if not records:
-            self.logger.warning("No records to save")
-            return None
-
-        df = pd.DataFrame.from_records(records)
-        return save_parquet_file(
-            df=df,
-            output_dir=self.raw_data_dir,
-            filename_prefix=self.endpoint_key,
-            timestamp_format=self.endpoint_config["timestamp_format"],
-            logger=self.logger,
-        )
-
-    # -----------------------------
-    # Full extraction pipeline
-    # -----------------------------
-    def extract_all(self) -> Optional[Path]:
-        """Run the full extraction pipeline."""
-        all_records = self.fetch_all_records()
-        file_path = self.save_to_parquet(all_records)
-        self.logger.info("Full extraction complete")
-        return file_path
