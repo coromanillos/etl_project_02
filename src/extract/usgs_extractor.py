@@ -7,6 +7,7 @@
 
 from pathlib import Path
 from typing import List, Dict
+
 from src.exceptions import ExtractionError
 
 
@@ -72,3 +73,37 @@ class USGSExtractor:
             offset += len(features)
 
         return all_records
+
+    #######################################################
+    # Fetch most recent month of data (incremental extract)
+    #######################################################
+    def fetch_recent_month(self, extra_params: Dict = None) -> List[Dict]:
+        """
+        Fetch the most recent month of data from the USGS API.
+
+        :param extra_params: Optional query parameters to include (e.g., monitoring_location_id, parameter_code).
+        :return: List of records (features) for the most recent month.
+        """
+        # Base query: always bound to the past month
+        query_params = {
+            "datetime": "P1M",  # past month
+            "limit": self.endpoint_config.get("limit", 10000),
+            "f": "json"
+        }
+
+        # Merge in any extra parameters supplied
+        if extra_params:
+            query_params.update(extra_params)
+
+        # Build full URL
+        base_url = self.endpoint_config["base_url"]
+        url = f"{base_url}&{urlencode(query_params)}"
+
+        self.logger.info(f"Fetching most recent month of data from {url}")
+        data = self.fetch_with_retries(url)
+
+        # Features are where the actual records live
+        features = data.get("features", [])
+        self.logger.info(f"Fetched {len(features)} records for the past month")
+
+        return features
