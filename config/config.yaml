@@ -9,12 +9,34 @@ logging:
   format: "${LOG_FORMAT:-json}"
 
 usgs:
-  monitoring_locations:  # underscores for Python-friendly access
+  monitoring_locations:
     base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json"
     limit: 10000
     request_timeout: 10
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
+    mode: "full"               # full extract
+    extra_params: {}           # no filters
+
+  daily_values:
+    base_url: "https://nwis.waterservices.usgs.gov/nwis/dv/?format=json"
+    limit: 10000
+    request_timeout: 10
+    max_retries: 3
+    timestamp_format: "%Y-%m-%dT%H:%M:%S"
+    mode: "recent"             # only fetch recent month
+    extra_params:
+      sites: "01491000"        # Delaware River at Trenton, for example
+      parameterCd: "00060"     # Discharge (cfs)
+
+  parameter_codes:
+    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items?f=json"
+    limit: 10000
+    request_timeout: 10
+    max_retries: 3
+    timestamp_format: "%Y-%m-%dT%H:%M:%S"
+    mode: "full"
+    extra_params: {}
 
 db:
   host: "${DB_HOST:-localhost}"

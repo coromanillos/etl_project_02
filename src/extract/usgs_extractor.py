@@ -74,6 +74,10 @@ class USGSExtractor:
 
         return all_records
 
+"""
+Allows for passing a dictionary that adds extra API parameters.
+Maybe config functionality? I think its fine as is.
+"""
     #######################################################
     # Fetch most recent month of data (incremental extract)
     #######################################################
