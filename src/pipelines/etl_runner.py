@@ -20,7 +20,7 @@ from src.exceptions import ExtractionError, SaveError
 def run_extraction(endpoint_key: str) -> Path:
     """
     Orchestrates the extraction for a given USGS endpoint.
-    This function is designed to be scheduled and executed by a DAG.
+    Reads extraction mode and extra parameters from config.
 
     Args:
         endpoint_key: str
@@ -48,6 +48,10 @@ def run_extraction(endpoint_key: str) -> Path:
     # ---------------------------
     # Extraction Phase
     # ---------------------------
+    endpoint_config = config["usgs"].get(endpoint_key, {})
+    mode = endpoint_config.get("mode", "full")  # default: full extract
+    extra_params = endpoint_config.get("extra_params", {})
+
     extractor = USGSExtractor(
         config=config,
         endpoint_key=endpoint_key,
@@ -55,7 +59,13 @@ def run_extraction(endpoint_key: str) -> Path:
     )
 
     try:
-        records = extractor.fetch_all_records()
+        if mode == "full":
+            records = extractor.fetch_all_records()
+        elif mode == "recent":
+            records = extractor.fetch_recent_month(extra_params=extra_params)
+        else:
+            raise ValueError(f"Unsupported extraction mode: {mode}")
+
         logger.info(f"Total {endpoint_key} records fetched: {len(records)}")
     except ExtractionError as e:
         logger.error(f"Extraction failed for {endpoint_key}: {e}")
