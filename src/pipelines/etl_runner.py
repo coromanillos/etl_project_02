@@ -12,7 +12,7 @@ from pathlib import Path
 # Project imports
 from utils.config_loader import load_config
 from utils.logging_config import configure_logger
-from utils.file_utils import FileContext, save_parquet_file
+from utils.file_utils import FileContext, save_file
 from utils.usgs_extractor import USGSExtractor
 from src.exceptions import ExtractionError, SaveError
 
@@ -27,7 +27,7 @@ def run_extraction(endpoint_key: str) -> Path:
             Key in config['usgs'] (e.g., 'monitoring_locations', 'daily_values', 'parameter_codes')
 
     Returns:
-        Path to saved parquet file.
+        Path to saved JSON file.
     """
 
     # ---------------------------
@@ -72,26 +72,20 @@ def run_extraction(endpoint_key: str) -> Path:
         raise
 
     # ---------------------------
-    # Transform to DataFrame
+    # Save as JSON
     # ---------------------------
     try:
-        df = pd.json_normalize(records)
-        logger.info(f"Normalized {endpoint_key} into DataFrame with {len(df)} rows and {len(df.columns)} columns")
-    except Exception as e:
-        logger.error(f"Failed to normalize records for {endpoint_key}: {e}")
-        raise
-
-    # ---------------------------
-    # Save as Parquet
-    # ---------------------------
-    try:
-        saved_file = save_parquet_file(
+        saved_file = save_file(
             context=context,
-            df=df,
-            filename_prefix=endpoint_key
+            data=records,              # pass raw list of dicts for JSON saving
+            filename_prefix=endpoint_key,
+            file_type="json"
         )
         if saved_file:
-            logger.info(f"Extraction for {endpoint_key} completed. File saved: {saved_file}")
+            logger.info(
+                f"Extraction for {endpoint_key} completed. "
+                f"File saved: {saved_file}"
+            )
         return saved_file
     except SaveError as e:
         logger.error(f"Failed to save extracted data for {endpoint_key}: {e}")
