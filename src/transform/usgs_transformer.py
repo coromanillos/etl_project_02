@@ -5,86 +5,56 @@
 # Date: 08/30/25
 ##################################################################################
 
-import json
-from pathlib import Path
-from typing import List, Dict, Optional
-
+from typing import List, Dict
 import pandas as pd
+from src.exceptions import TransformError
+from src.file_utils import DataManager
 
 
 class USGSTransformer:
-    def __init__(self, raw_data_dir: str, transformed_data_dir: str, logger):
+    def __init__(self, data_manager: DataManager, logger):
         """
-        Transformer for USGS raw JSON files.
-
-        :param raw_data_dir: Path to directory containing raw JSON files
-        :param transformed_data_dir: Path to save transformed outputs
-        :param logger: Logger instance
+        Generic Transformer for any USGS data endpoint.
         """
-        self.raw_data_dir = Path(raw_data_dir)
-        self.transformed_data_dir = Path(transformed_data_dir)
+        self.data_manager = data_manager
         self.logger = logger
 
-        self.transformed_data_dir.mkdir(parents=True, exist_ok=True)
-
-    ##############################################################
-    # Load raw JSON file and return just the "properties" records
-    ##############################################################
-    def extract_properties(self, raw_file: Path, include_geometry: bool = False) -> List[Dict]:
+    def extract_properties(self, records: List[Dict], include_geometry: bool = False) -> List[Dict]:
         """
-        Extract only the properties from a raw USGS GeoJSON file.
-
-        :param raw_file: Path to a raw JSON file
-        :param include_geometry: If True, also flatten geometry coordinates into lat/lon
-        :return: List of property dictionaries
+        Extract only the "properties" field from raw USGS records.
+        Optionally keeps the raw 'geometry' field without splitting into latitude/longitude.
         """
-        with open(raw_file, "r") as f:
-            data = json.load(f)
-
-        features = data.get("features", [])
-        records = []
-
-        for feature in features:
+        extracted = []
+        for feature in records:
             props = feature.get("properties", {}) or {}
+            if include_geometry and feature.get("geometry") is not None:
+                # Keep raw geometry dict as-is
+                props["geometry"] = feature["geometry"]
+            extracted.append(props)
+        self.logger.info(f"Extracted {len(extracted)} property records")
+        return extracted
 
-            if include_geometry and feature.get("geometry") and feature["geometry"].get("coordinates"):
-                coords = feature["geometry"]["coordinates"]
-                props["longitude"], props["latitude"] = coords[0], coords[1]
-
-            records.append(props)
-
-        self.logger.info(f"Extracted {len(records)} records from {raw_file.name}")
-        return records
-
-    ##############################################################
-    # Convert properties into DataFrame
-    ##############################################################
     def to_dataframe(self, records: List[Dict]) -> pd.DataFrame:
         """Convert list of property dicts into a Pandas DataFrame."""
         return pd.DataFrame(records)
 
-    ##############################################################
-    # Full transform pipeline: raw JSON -> cleaned CSV
-    ##############################################################
-    def transform_file(self, raw_file: Path, include_geometry: bool = False, output_format: str = "csv") -> Path:
+    def transform_latest_file(
+        self,
+        endpoint: str,
+        include_geometry: bool = False,
+        output_format: str = "csv"
+    ) -> str:
         """
-        Transform a raw JSON file into a structured CSV or Parquet file.
-
-        :param raw_file: Path to raw JSON file
-        :param include_geometry: Whether to include lat/lon from geometry
-        :param output_format: "csv" or "parquet"
-        :return: Path to transformed file
+        Load the latest raw file, transform, and save using DataManager.
         """
-        records = self.extract_properties(raw_file, include_geometry=include_geometry)
-        df = self.to_dataframe(records)
-
-        output_file = self.transformed_data_dir / f"{raw_file.stem}.{output_format}"
-        if output_format == "csv":
-            df.to_csv(output_file, index=False)
-        elif output_format == "parquet":
-            df.to_parquet(output_file, index=False)
-        else:
-            raise ValueError(f"Unsupported format: {output_format}")
-
-        self.logger.info(f"Saved transformed file to {output_file}")
-        return output_file
+        try:
+            raw_records = self.data_manager.load_latest_file(endpoint, use_processed=False)
+            transformed_records = self.extract_properties(raw_records, include_geometry=include_geometry)
+            df = self.to_dataframe(transformed_records)
+            output_path = self.data_manager.save_dataframe(df, endpoint, use_processed=True, output_format=output_format)
+            self.logger.info(f"Transformed data saved to {output_path}")
+            return str(output_path)
+        except Exception as e:
+            msg = f"Failed to transform latest file for endpoint '{endpoint}': {e}"
+            self.logger.error(msg)
+            raise TransformError(msg)
