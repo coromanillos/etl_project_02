@@ -1,92 +1,86 @@
-#################################################################################
+##################################################################################
 # Name: etl_runner.py
 # Author: Christopher O. Romanillos
-# Description: Generic entrypoint module to orchestrate extraction of any USGS
-#              endpoint for use in DAG scheduling (Airflow, Prefect, etc.)
-# Date: 08/27/25
-#################################################################################
+# Description: Orchestrates extraction, transformation, and (future) validation/loading
+#              of USGS API endpoints using reusable ETL classes.
+# Date: 09/01/25
+##################################################################################
 
-import pandas as pd
 from pathlib import Path
+from src.config_loader import load_config
+from src.logging_config import configure_logger
+from src.file_utils import DataManager
+from src.usgs_extractor import USGSExtractor
+from src.usgs_transformer import USGSTransformer
 
-# Project imports
-from utils.config_loader import load_config
-from utils.logging_config import configure_logger
-from utils.file_utils import FileContext, save_file
-from utils.usgs_extractor import USGSExtractor
-from src.exceptions import ExtractionError, SaveError
+# Placeholder imports for future validation and loading
+# from src.usgs_validator import USGSValidator
+# from src.usgs_loader import USGSLoader
 
-
-def run_extraction(endpoint_key: str) -> Path:
+def run_pipeline(endpoint_key: str, include_geometry: bool = False):
     """
-    Orchestrates the extraction for a given USGS endpoint.
-    Reads extraction mode and extra parameters from config.
+    Generic ETL pipeline runner for a single USGS endpoint.
 
-    Args:
-        endpoint_key: str
-            Key in config['usgs'] (e.g., 'monitoring_locations', 'daily_values', 'parameter_codes')
-
-    Returns:
-        Path to saved JSON file.
+    Steps:
+        1. Extract data (full or incremental depending on config)
+        2. Transform extracted data
+        3. Placeholder for validation (future)
+        4. Placeholder for loading (future)
     """
-
-    # ---------------------------
-    # Load configuration + logger
-    # ---------------------------
+    # Load config and logging
     config = load_config()
     logger = configure_logger(config.get("logging"))
 
-    # ---------------------------
-    # Initialize file context
-    # ---------------------------
-    context = FileContext(
+    # Initialize DataManager
+    dm = DataManager(
         logger=logger,
-        raw_data_dir=Path(config["paths"]["raw_data"]),
-        timestamp_format=config.get("timestamp_format", "%Y%m%d_%H%M%S"),
+        base_raw_dir=Path(config["paths"]["raw_data"]),
+        base_processed_dir=Path(config["paths"]["prepared_data"]),
+        timestamp_format=config["usgs"][endpoint_key].get("timestamp_format", "%Y-%m-%dT%H:%M:%S")
     )
 
-    # ---------------------------
-    # Extraction Phase
-    # ---------------------------
-    endpoint_config = config["usgs"].get(endpoint_key, {})
-    mode = endpoint_config.get("mode", "full")  # default: full extract
-    extra_params = endpoint_config.get("extra_params", {})
+    # Initialize ETL classes
+    extractor = USGSExtractor(config, endpoint_key, logger, data_manager=dm)
+    transformer = USGSTransformer(dm, logger)
+    # validator = USGSValidator(schema=config["usgs"][endpoint_key].get("schema"))
+    # loader = USGSLoader(db_config=config["db"])
 
-    extractor = USGSExtractor(
-        config=config,
-        endpoint_key=endpoint_key,
-        logger=logger,
-    )
+    # -----------------------------
+    # Extraction
+    # -----------------------------
+    endpoint_mode = config["usgs"][endpoint_key]["mode"]
+    extra_params = config["usgs"][endpoint_key].get("extra_params", {})
 
-    try:
-        if mode == "full":
-            records = extractor.fetch_all_records()
-        elif mode == "recent":
-            records = extractor.fetch_recent_month(extra_params=extra_params)
-        else:
-            raise ValueError(f"Unsupported extraction mode: {mode}")
+    if endpoint_mode == "full":
+        raw_data = extractor.fetch_all_records()
+    else:
+        raw_data = extractor.fetch_recent_month(extra_params=extra_params)
 
-        logger.info(f"Total {endpoint_key} records fetched: {len(records)}")
-    except ExtractionError as e:
-        logger.error(f"Extraction failed for {endpoint_key}: {e}")
-        raise
+    # -----------------------------
+    # Transformation
+    # -----------------------------
+    transformed_path = transformer.transform_latest_file(endpoint_key, include_geometry=include_geometry)
+    logger.info(f"Transformed data saved to {transformed_path}")
 
-    # ---------------------------
-    # Save as JSON
-    # ---------------------------
-    try:
-        saved_file = save_file(
-            context=context,
-            data=records,              # pass raw list of dicts for JSON saving
-            filename_prefix=endpoint_key,
-            file_type="json"
-        )
-        if saved_file:
-            logger.info(
-                f"Extraction for {endpoint_key} completed. "
-                f"File saved: {saved_file}"
-            )
-        return saved_file
-    except SaveError as e:
-        logger.error(f"Failed to save extracted data for {endpoint_key}: {e}")
-        raise
+    # -----------------------------
+    # Validation (placeholder)
+    # -----------------------------
+    # validator.validate(transformed_path)
+    # logger.info(f"Validated transformed data for {endpoint_key}")
+
+    # -----------------------------
+    # Loading (placeholder)
+    # -----------------------------
+    # loader.load(transformed_path)
+    # logger.info(f"Loaded transformed data for {endpoint_key}")
+
+    logger.info(f"Pipeline completed successfully for endpoint '{endpoint_key}'")
+    return transformed_path
+
+# -----------------------------
+# Example usage
+# -----------------------------
+if __name__ == "__main__":
+    endpoints = ["monitoring_locations", "daily_values", "parameter_codes"]
+    for ep in endpoints:
+        run_pipeline(ep, include_geometry=True)

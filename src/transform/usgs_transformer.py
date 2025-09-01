@@ -21,21 +21,30 @@ class USGSTransformer:
 
     def extract_properties(self, records: List[Dict], include_geometry: bool = False) -> List[Dict]:
         """
-        Extract only the "properties" field from raw USGS records.
-        Optionally keeps the raw 'geometry' field without splitting into latitude/longitude.
+        Extract and flatten fields from USGS API records:
+          - Flattens `properties` into a dict
+          - Adds top-level `id` field
+          - Optionally includes raw `geometry`
         """
         extracted = []
         for feature in records:
             props = feature.get("properties", {}) or {}
+
+            # Always include top-level id if present
+            if "id" in feature:
+                props["id"] = feature["id"]
+
+            # Optionally include raw geometry
             if include_geometry and feature.get("geometry") is not None:
-                # Keep raw geometry dict as-is
                 props["geometry"] = feature["geometry"]
+
             extracted.append(props)
-        self.logger.info(f"Extracted {len(extracted)} property records")
+
+        self.logger.info(f"Extracted {len(extracted)} property records (with id{' and geometry' if include_geometry else ''})")
         return extracted
 
     def to_dataframe(self, records: List[Dict]) -> pd.DataFrame:
-        """Convert list of property dicts into a Pandas DataFrame."""
+        """Convert list of flattened dicts into a Pandas DataFrame."""
         return pd.DataFrame(records)
 
     def transform_latest_file(
