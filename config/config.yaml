@@ -15,8 +15,10 @@ usgs:
     request_timeout: 10
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
-    mode: "full"               # full extract
-    extra_params: {}           # no filters
+    mode: "full"               
+    extra_params: {}           
+    transformations:
+      uses_daylight_savings: yesno_to_bool
 
   daily_values:
     base_url: "https://nwis.waterservices.usgs.gov/nwis/dv/?format=json"
@@ -24,10 +26,12 @@ usgs:
     request_timeout: 10
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
-    mode: "recent"             # only fetch recent month
+    mode: "recent"             
+    recent_period: "P1M"
     extra_params:
-      sites: "01491000"        # Delaware River at Trenton, for example
-      parameterCd: "00060"     # Discharge (cfs)
+      sites: "01491000"
+      parameterCd: "00060"
+    transformations: {}
 
   parameter_codes:
     base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items?f=json"
@@ -37,6 +41,7 @@ usgs:
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
     extra_params: {}
+    transformations: {}
 
 db:
   host: "${DB_HOST:-localhost}"
