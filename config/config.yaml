@@ -31,7 +31,7 @@ usgs:
     extra_params:
       sites: "01491000"
       parameterCd: "00060"
-    transformations: {}
+    transformations: parse_datetime
 
   parameter_codes:
     base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items?f=json"
