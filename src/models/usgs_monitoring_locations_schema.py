@@ -1,11 +1,10 @@
 ###########################################
 # Name: usgs_monitoring_locations_schema.py
 # Author: Christopher O. Romanillos
-# Description: SQLAlchemy ORM Schema scipt 
-# Date: 08/02/25
+# Description: SQLAlchemy ORM Schema for USGS Monitoring Locations
 ###########################################
 
-from sqlalchemy import Column, String, Float, Boolean, Date, Text
+from sqlalchemy import Column, String, Float, Boolean, Date, Text, Index
 from sqlalchemy.orm import declarative_base
 from geoalchemy2 import Geometry
 
@@ -14,53 +13,72 @@ Base = declarative_base()
 class MonitoringLocation(Base):
     __tablename__ = 'monitoring_locations'
 
-    id = Column(String(15), primary_key=True)  # e.g., "USGS-02238500"
-    agency_code = Column(String(100), nullable=False)
-    agency_name = Column(String)
-    monitoring_location_number = Column(String)
-    monitoring_location_name = Column(String)
+    # Primary key
+    id = Column(String(50), primary_key=True)  
 
-    district_code = Column(String)
-    country_code = Column(String)
-    country_name = Column(String)
-    state_code = Column(String)
-    state_name = Column(String)
-    county_code = Column(String)
-    county_name = Column(String)
-    minor_civil_division_code = Column(String)
+    # Agency info
+    agency_code = Column(String(5), nullable=False)
+    agency_name = Column(String(50), nullable=True)
 
-    site_type_code = Column(String)
-    site_type = Column(String)
-    hydrologic_unit_code = Column(String)
-    basin_code = Column(String)
+    # Location info
+    monitoring_location_number = Column(Text, nullable=True)
+    monitoring_location_name = Column(Text, nullable=True)
+    district_code = Column(Text, nullable=True)
+    country_code = Column(Text, nullable=True)
+    country_name = Column(Text, nullable=True)
+    state_code = Column(Text, nullable=True)
+    state_name = Column(Text, nullable=True)
+    county_code = Column(Text, nullable=True)
+    county_name = Column(Text, nullable=True)
+    minor_civil_division_code = Column(Text, nullable=True)
 
-    altitude = Column(Float)
-    altitude_accuracy = Column(Float)
-    altitude_method_code = Column(String)
-    altitude_method_name = Column(String)
-    vertical_datum = Column(String)
-    vertical_datum_name = Column(String)
+    # Site info
+    site_type_code = Column(Text, nullable=True)
+    site_type = Column(Text, nullable=True)
+    hydrologic_unit_code = Column(Text, nullable=True)
+    basin_code = Column(Text, nullable=True)
 
-    horizontal_positional_accuracy_code = Column(String)
-    horizontal_positional_accuracy = Column(String)
-    horizontal_position_method_code = Column(String)
-    horizontal_position_method_name = Column(String)
-    original_horizontal_datum = Column(String)
-    original_horizontal_datum_name = Column(String)
+    # Altitude / depth
+    altitude = Column(Float, nullable=True)
+    altitude_accuracy = Column(Float, nullable=True)
+    altitude_method_code = Column(Text, nullable=True)
+    altitude_method_name = Column(Text, nullable=True)
+    vertical_datum = Column(Text, nullable=True)
+    vertical_datum_name = Column(Text, nullable=True)
 
-    drainage_area = Column(Float)
-    contributing_drainage_area = Column(Float)
+    # Horizontal accuracy
+    horizontal_positional_accuracy_code = Column(Text, nullable=True)
+    horizontal_positional_accuracy = Column(Text, nullable=True)
+    horizontal_position_method_code = Column(Text, nullable=True)
+    horizontal_position_method_name = Column(Text, nullable=True)
+    original_horizontal_datum = Column(Text, nullable=True)
+    original_horizontal_datum_name = Column(Text, nullable=True)
 
-    time_zone_abbreviation = Column(String)
-    uses_daylight_savings = Column(String)
-    construction_date = Column(String)
+    # Drainage areas
+    drainage_area = Column(Float, nullable=True)
+    contributing_drainage_area = Column(Float, nullable=True)
 
-    aquifer_code = Column(St ring)
-    national_aquifer_code = Column(String)
-    aquifer_type_code = Column(String)
+    # Time info
+    time_zone_abbreviation = Column(Text, nullable=True)
+    uses_daylight_savings = Column(Boolean, nullable=True)  # Converted from Y/N to Boolean
+    construction_date = Column(Text, nullable=True)         # Unknown format
 
-    well_constructed_depth = Column(Float)
-    hole_constructed_depth = Column(Float)
-    depth_source_code = Column(String)
+    # Aquifer info
+    aquifer_code = Column(Text, nullable=True)
+    national_aquifer_code = Column(Text, nullable=True)
+    aquifer_type_code = Column(Text, nullable=True)
 
-    geometry = Column(Geometry("POINT", srid=4326))  # Uses PostGIS, so use Geometry type from geoalchemy2
+    # Well info
+    well_constructed_depth = Column(Float, nullable=True)
+    hole_constructed_depth = Column(Float, nullable=True)
+    depth_source_code = Column(Text, nullable=True)
+
+    # Spatial info
+    geometry = Column(Geometry("POINT", srid=4326), nullable=True)  # PostGIS Point
+
+    # Table indexes for faster queries
+    __table_args__ = (
+        Index('idx_state_code', 'state_code'),
+        Index('idx_agency_code', 'agency_code'),
+        Index('idx_geometry', 'geometry', postgresql_using='gist'),
+    )
