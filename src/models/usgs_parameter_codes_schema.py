@@ -18,20 +18,20 @@ class ParameterCode(Base):
     id = Column(String(10), primary_key=True)  # Parameter code (unique identifier)
 
     # Core metadata
-    parameter_name = Column(Text, nullable=True)  # Short name
-    unit_of_measure = Column(Text, nullable=True)  # Reporting units
-    parameter_group_code = Column(Text, nullable=True)  # Grouping for reporting
-    parameter_description = Column(Text, nullable=True)  # Full description
-    medium = Column(Text, nullable=True)  # Medium of parameter
-    statistical_basis = Column(Text, nullable=True)  # Statistical basis
-    time_basis = Column(Text, nullable=True)  # Time basis
-    weight_basis = Column(Text, nullable=True)  # Weight basis
-    particle_size_basis = Column(Text, nullable=True)  # Particle-size basis
-    sample_fraction = Column(Text, nullable=True)  # Fraction type
-    temperature_basis = Column(Text, nullable=True)  # Temperature basis
-    epa_equivalence = Column(Text, nullable=True)  # USGS/EPA equivalence
+    parameter_name = Column(String, nullable=True)  
+    unit_of_measure = Column(String, nullable=True)  
+    parameter_group_code = Column(String, nullable=True)  
+    parameter_description = Column(String, nullable=True)  
+    medium = Column(Text, nullable=True) 
+    statistical_basis = Column(String, nullable=True)  
+    time_basis = Column(String, nullable=True)  
+    weight_basis = Column(String, nullable=True)  
+    particle_size_basis = Column(String, nullable=True)  
+    sample_fraction = Column(String, nullable=True)  
+    temperature_basis = Column(String, nullable=True)  
+    epa_equivalence = Column(String, nullable=True) 
 
-    # Spatial info (optional)
+    # Spatial info 
     geometry = Column(Geometry("GEOMETRY", srid=4326), nullable=True)
 
     # Table indexes for performance
