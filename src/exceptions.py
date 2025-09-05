@@ -17,7 +17,11 @@ class SaveError(Exception):
     """Raised when saving data to storage fails."""
     pass
 
-
 class TransformError(Exception):
     """Raised when data transformation from a raw source fails"""
     pass
+
+class ValidationError(Exception):
+    """Raised when validation of transformed data fails."""
+    pass
+
