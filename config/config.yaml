@@ -15,10 +15,13 @@ usgs:
     request_timeout: 10
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
-    mode: "full"               
-    extra_params: {}           
+    mode: "full"
+    extra_params: {}
     transformations:
       uses_daylight_savings: yesno_to_bool
+    critical_fields: ["id", "geometry"]
+    id_field: "id"
+    consistency_rules: ["geometry_requires_id"]
 
   daily_values:
     base_url: "https://nwis.waterservices.usgs.gov/nwis/dv/?format=json"
@@ -26,12 +29,18 @@ usgs:
     request_timeout: 10
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
-    mode: "recent"             
+    mode: "recent"
     recent_period: "P1M"
     extra_params:
       sites: "01491000"
       parameterCd: "00060"
-    transformations: parse_datetime
+    transformations:
+      time: parse_datetime
+      last_modified: parse_datetime
+      geometry: flatten_geometry
+    critical_fields: ["id", "value", "datetime"]
+    id_field: "id"
+    consistency_rules: []
 
   parameter_codes:
     base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items?f=json"
@@ -41,7 +50,12 @@ usgs:
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
     extra_params: {}
-    transformations: {}
+    transformations:
+      geometry: flatten_geometry
+    critical_fields: ["id", "parameter_cd"]
+    id_field: "id"
+    consistency_rules: []
+
 
 db:
   host: "${DB_HOST:-localhost}"
