@@ -10,7 +10,7 @@ logging:
 
 usgs:
   monitoring_locations:
-    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items?f=json"
+    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items"
     limit: 10000
     request_timeout: 10
     max_retries: 3
@@ -24,7 +24,7 @@ usgs:
     consistency_rules: ["geometry_requires_id"]
 
   daily_values:
-    base_url: "https://nwis.waterservices.usgs.gov/nwis/dv/?format=json"
+    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/daily/items"
     limit: 10000
     request_timeout: 10
     max_retries: 3
@@ -38,12 +38,12 @@ usgs:
       time: parse_datetime
       last_modified: parse_datetime
       geometry: flatten_geometry
-    critical_fields: ["id", "value", "datetime"]
+    critical_fields: ["id", "geometry"]
     id_field: "id"
     consistency_rules: []
 
   parameter_codes:
-    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items?f=json"
+    base_url: "https://api.waterdata.usgs.gov/ogcapi/v0/collections/parameter-codes/items"
     limit: 10000
     request_timeout: 10
     max_retries: 3
@@ -52,7 +52,7 @@ usgs:
     extra_params: {}
     transformations:
       geometry: flatten_geometry
-    critical_fields: ["id", "parameter_cd"]
+    critical_fields: ["id", "geometry"]
     id_field: "id"
     consistency_rules: []
 
