@@ -5,19 +5,19 @@
 # Date: 09/03/25
 ##################################################################################
 
-from typing import Dict, Any
+from typing import Dict
 import pandas as pd
 from src.exceptions import ValidationError
 from src.file_utils import DataManager
+from models.schema_registry import SCHEMA_REGISTRY
 import pandera as pa
 
 
 class USGSValidator:
-    def __init__(self, data_manager: DataManager, logger, endpoint_config: Dict, schema: pa.DataFrameSchema):
+    def __init__(self, data_manager: DataManager, logger, endpoint_config: Dict):
         self.data_manager = data_manager
         self.logger = logger
         self.endpoint_config = endpoint_config
-        self.schema = schema
 
     def load_transformed_data(self, endpoint: str) -> pd.DataFrame:
         """Load latest transformed file from processed dir into a DataFrame."""
@@ -30,14 +30,18 @@ class USGSValidator:
             self.logger.error(msg)
             raise ValidationError(msg)
 
-    def validate_schema(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Check schema compliance using pandera."""
+    def validate_schema(self, df: pd.DataFrame, endpoint: str) -> pd.DataFrame:
+        """Check schema compliance using Pandera."""
+        schema: pa.DataFrameSchema = SCHEMA_REGISTRY.get(endpoint)
+        if not schema:
+            raise ValidationError(f"No Pandera schema registered for endpoint '{endpoint}'")
+
         try:
-            validated_df = self.schema.validate(df, lazy=True)
-            self.logger.info("Schema validation passed")
+            validated_df = schema.validate(df, lazy=True)
+            self.logger.info(f"Schema validation passed for endpoint: {endpoint}")
             return validated_df
         except pa.errors.SchemaErrors as e:
-            self.logger.error(f"Schema validation failed: {e.failure_cases}")
+            self.logger.error(f"Schema validation failed for endpoint {endpoint}: {e.failure_cases}")
             raise ValidationError("Schema validation failed")
 
     def validate_integrity(self, df: pd.DataFrame) -> None:
@@ -72,7 +76,7 @@ class USGSValidator:
         """End-to-end validation pipeline for latest transformed file."""
         try:
             df = self.load_transformed_data(endpoint)
-            df = self.validate_schema(df)
+            df = self.validate_schema(df, endpoint)
             self.validate_integrity(df)
             self.validate_consistency(df)
             self.logger.info(f"Validation completed successfully for {endpoint}")
@@ -81,5 +85,3 @@ class USGSValidator:
             msg = f"Validation failed for endpoint '{endpoint}': {e}"
             self.logger.error(msg)
             raise
-
-
