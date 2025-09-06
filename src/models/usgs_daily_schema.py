@@ -1,5 +1,5 @@
 ###########################################
-# Name: usgs_daily_values_schema.py
+# Name: usgs_daily_schema.py
 # Author: Christopher O. Romanillos
 # Description: SQLAlchemy ORM Schema for USGS Daily Values
 # Date: 09/01/25
