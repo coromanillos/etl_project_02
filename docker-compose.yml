@@ -8,7 +8,7 @@ x-airflow-common: &airflow-common
   env_file: .env
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgis/airflow
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__DATABASE__LOAD_DEFAULT_CONNECTIONS: 'false'
@@ -16,24 +16,23 @@ x-airflow-common: &airflow-common
     - ./airflow/dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
   depends_on:
-    - postgres
+    - postgis
   networks:
     - airflow
 
 services:
-  postgres:
-    image: postgres:16
+  postgis:
+    image: postgis/postgis:16-3.4  # PostgreSQL 16 with PostGIS 3.4
     restart: always
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgis_data:/var/lib/postgresql/data
     networks:
       - airflow
-    restart: always
-    
+
   airflow-init:
     <<: *airflow-common
     entrypoint: >
@@ -46,7 +45,7 @@ services:
                --password admin && 
                airflow db upgrade"
     depends_on:
-      - postgres
+      - postgis
 
   airflow-webserver:
     <<: *airflow-common
@@ -63,7 +62,7 @@ services:
       - airflow-init
 
 volumes:
-  postgres_data:
+  postgis_data:
 
 networks:
   airflow:
