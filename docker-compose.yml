@@ -16,7 +16,8 @@ x-airflow-common: &airflow-common
     - ./airflow/dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
   depends_on:
-    - postgis
+    postgis:
+      condition: service_healthy
   networks:
     - airflow
 
@@ -32,6 +33,12 @@ services:
       - postgis_data:/var/lib/postgresql/data
     networks:
       - airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   airflow-init:
     <<: *airflow-common
@@ -45,7 +52,8 @@ services:
                --password admin && 
                airflow db upgrade"
     depends_on:
-      - postgis
+      postgis:
+        condition: service_healthy
 
   airflow-webserver:
     <<: *airflow-common
@@ -53,13 +61,15 @@ services:
       - "8080:8080"
     command: webserver
     depends_on:
-      - airflow-init
+      airflow-init:
+        condition: service_completed_successfully
 
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
     depends_on:
-      - airflow-init
+      airflow-init:
+        condition: service_completed_successfully
 
 volumes:
   postgis_data:
