@@ -1,0 +1,23 @@
+Alembic migrations/
+    env.py: main config entrypoint with SQLAlchemy and geoalchemy2
+    script.py.maako: template for migration files
+    alembic.ini: global Alembic config
+    
+Generic single-database configuration.
+
+
+# Goals
+
+Add Alembic + GeoAlchemy2 as dependencies (done).
+
+Initialize Alembic (alembic init migrations).
+
+Wire ORM models into env.py (Base.metadata).
+
+Add renderer for GeoAlchemy2 types.
+
+Create PostGIS extension migration.
+
+Autogenerate + apply schema migrations.
+
+Use Alembic as the source of truth for schema evolution in prod.

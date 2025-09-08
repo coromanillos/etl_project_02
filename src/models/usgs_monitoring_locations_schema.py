@@ -1,14 +1,12 @@
-###########################################
+##################################################################
 # Name: usgs_monitoring_locations_schema.py
 # Author: Christopher O. Romanillos
 # Description: SQLAlchemy ORM Schema for USGS Monitoring Locations
-###########################################
+##################################################################
 
-from sqlalchemy import Column, String, Float, Boolean, Date, Text, Index
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, String, Float, Boolean, Text, Index
 from geoalchemy2 import Geometry
-
-Base = declarative_base()
+from .base import Base  
 
 class MonitoringLocation(Base):
     __tablename__ = 'monitoring_locations'
@@ -60,7 +58,7 @@ class MonitoringLocation(Base):
 
     # Time info
     time_zone_abbreviation = Column(Text, nullable=True)
-    uses_daylight_savings = Column(Boolean, nullable=True)  # Converted from Y/N to Boolean
+    uses_daylight_savings = Column(Boolean, nullable=True)  # Converted from Y/N
     construction_date = Column(Text, nullable=True)         # Unknown format
 
     # Aquifer info
@@ -76,7 +74,7 @@ class MonitoringLocation(Base):
     # Spatial info
     geometry = Column(Geometry("POINT", srid=4326), nullable=True)  # PostGIS Point
 
-    # Table indexes for faster queries
+    # Table indexes
     __table_args__ = (
         Index('idx_state_code', 'state_code'),
         Index('idx_agency_code', 'agency_code'),

@@ -1,18 +1,14 @@
-###########################################
+##########################################################
 # Name: usgs_daily_schema.py
 # Author: Christopher O. Romanillos
 # Description: SQLAlchemy ORM Schema for USGS Daily Values
-# Date: 09/01/25
-###########################################
+##########################################################
 
-from sqlalchemy import Column, String, Text, DateTime, Index, ForeignKey
+from sqlalchemy import Column, String, Text, Date, DateTime, Index, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import text
 from geoalchemy2 import Geometry
-import uuid
-
-Base = declarative_base()
+from .base import Base  
 
 class DailyValue(Base):
     __tablename__ = 'daily_values'
@@ -20,10 +16,10 @@ class DailyValue(Base):
     # Surrogate key
     uuid = Column(UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
 
-    # Source-provided ID (volatile, not stable across refreshes)
+    # Source-provided ID (volatile)
     source_id = Column(String(50), nullable=False, index=True)
 
-    # Foreign key references / identifiers
+    # Foreign key references
     time_series_id = Column(String(50), nullable=False)
     monitoring_location_id = Column(
         String(50), 

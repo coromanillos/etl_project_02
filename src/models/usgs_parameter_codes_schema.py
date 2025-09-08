@@ -6,10 +6,8 @@
 ###########################################
 
 from sqlalchemy import Column, String, Text, Index
-from sqlalchemy.orm import declarative_base
 from geoalchemy2 import Geometry
-
-Base = declarative_base()
+from .base import Base 
 
 class ParameterCode(Base):
     __tablename__ = 'parameter_codes'
@@ -34,7 +32,7 @@ class ParameterCode(Base):
     # Spatial info 
     geometry = Column(Geometry("GEOMETRY", srid=4326), nullable=True)
 
-    # Table indexes for performance
+    # Indexes
     __table_args__ = (
         Index('idx_parameter_group_code', 'parameter_group_code'),
         Index('idx_geometry', 'geometry', postgresql_using='gist'),
