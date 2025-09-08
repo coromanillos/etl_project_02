@@ -95,7 +95,7 @@ CREATE TABLE daily_values (
     source_id VARCHAR(50) NOT NULL,
     time_series_id VARCHAR(50) NOT NULL,
     monitoring_location_id VARCHAR(50) NOT NULL REFERENCES monitoring_locations(id) ON DELETE CASCADE,
-    parameter_code VARCHAR(50) NOT NULL REFERENCES parameter_codes(id) ON DELETE CASCADE,
+    parameter_code VARCHAR(10) NOT NULL REFERENCES parameter_codes(id) ON DELETE CASCADE,
     statistic_id VARCHAR(50) NOT NULL,
     time DATE NOT NULL,
     last_modified TIMESTAMP,

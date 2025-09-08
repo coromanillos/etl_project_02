@@ -312,3 +312,5 @@ The United States Geological Survey (USGS) provides water-related data through v
   - integration tests
   - Github Action CI/CD
 ---
+
+docker exec -it airflow_postgis psql -U airflow -d airflow
