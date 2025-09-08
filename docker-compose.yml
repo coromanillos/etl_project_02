@@ -7,34 +7,35 @@ x-airflow-common: &airflow-common
   image: custom-airflow:3.0.2
   env_file: .env
   environment:
-    AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgis/airflow
-    AIRFLOW__CORE__FERNET_KEY: ''
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-    AIRFLOW__DATABASE__LOAD_DEFAULT_CONNECTIONS: 'false'
+    AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${DATABASE_URL}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY}
+    AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+    AIRFLOW__DATABASE__LOAD_DEFAULT_CONNECTIONS: ${AIRFLOW__DATABASE__LOAD_DEFAULT_CONNECTIONS}
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
-  depends_on:
-    postgis:
-      condition: service_healthy
   networks:
     - airflow
 
 services:
   postgis:
-    image: postgis/postgis:16-3.4  # PostgreSQL 16 with PostGIS 3.4
+    image: postgis/postgis:16-3.4
+    container_name: airflow_postgis
     restart: always
+    env_file: .env
     environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgis_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # expose to host
     networks:
       - airflow
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -h localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,20 +44,23 @@ services:
   airflow-init:
     <<: *airflow-common
     entrypoint: >
-      bash -c "airflow db migrate && airflow users create 
-               --username admin 
-               --firstname Admin 
-               --lastname User 
-               --role Admin 
-               --email admin@example.com 
-               --password admin && 
-               airflow db upgrade"
+      bash -c "
+        airflow db upgrade &&
+        airflow users create \
+          --username admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com \
+          --password admin
+      "
     depends_on:
       postgis:
         condition: service_healthy
 
   airflow-webserver:
     <<: *airflow-common
+    container_name: airflow_webserver
     ports:
       - "8080:8080"
     command: webserver
@@ -66,6 +70,7 @@ services:
 
   airflow-scheduler:
     <<: *airflow-common
+    container_name: airflow_scheduler
     command: scheduler
     depends_on:
       airflow-init:

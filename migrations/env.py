@@ -4,19 +4,21 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from dotenv import load_dotenv
 
-load_dotenv()  # load DATABASE_URL
+# Always load .env first
+load_dotenv(override=True)
 
+# Alembic config object
 config = context.config
-if config.config_file_name is not None:
+if config.config_file_name:
     fileConfig(config.config_file_name)
 
-# Import your ORM models
-from src.models.base import Base  # Base.metadata must include all models
-
+# Import ORM metadata
+from src.models.base import Base
 target_metadata = Base.metadata
 
 def run_migrations_offline():
-    url = config.get_main_option("sqlalchemy.url")
+    """Run migrations in offline mode (SQL script generation)."""
+    url = os.getenv("DATABASE_URL")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -27,10 +29,12 @@ def run_migrations_offline():
         context.run_migrations()
 
 def run_migrations_online():
+    """Run migrations in online mode (direct DB connection)."""
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        config.get_section(config.config_ini_section),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        url=os.getenv("DATABASE_URL")
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
