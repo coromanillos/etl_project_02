@@ -1,7 +1,7 @@
 ##################################################################################
 # Name: usgs_transformer.py
 # Author: Christopher O. Romanillos
-# Description: Class-based transformation of USGS API raw data (generic)
+# Description: Class-based transformation of USGS API raw data 
 # Date: 09/02/25
 ##################################################################################
 

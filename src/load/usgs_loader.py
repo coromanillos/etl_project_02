@@ -17,11 +17,23 @@ project, I have not done so.
 In hindsight, I would have applied the same line of thinking to the extraction class...
 """
 
+"""
+Things to look into:
+
+- "Upserts/Idempotency"
+- Batch inserts
+- Retry logic
+- Duplciate records "Address via upserts?"
+- Slow loading (optimized with batch inserts and/or COPY)
+
+
+""" 
 import os
 import psycopg2
 import pandas as pd
 from typing import Dict
 from psycopg2.extras import execute_values
+
 from src.exceptions import LoadError
 from src.file_utils import DataManager
 
