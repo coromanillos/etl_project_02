@@ -1,10 +1,10 @@
-##################################################################################
+##########################################################################################
 # Name: usgs_extractor.py
 # Author: Christopher O. Romanillos
 # Description: Class-based extraction of USGS API endpoints 
 #              focused solely on extraction tasks. File handling delegated to DataManager.
 # Date: 08/23/25
-##################################################################################
+##########################################################################################
 
 from typing import List, Dict, Optional
 from urllib.parse import urlencode
