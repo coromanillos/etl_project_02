@@ -16,7 +16,7 @@ import pandas as pd
 from typing import Dict
 from psycopg2.extras import execute_values
 
-from src.exceptions import LoadError
+from src.exceptions import LoaderError  
 from src.file_utils import DataManager
 
 
@@ -40,7 +40,7 @@ class USGSLoader:
             )
             self.logger.info("Connected to PostGIS")
         except Exception as e:
-            raise LoadError(f"Failed to connect to PostGIS: {e}")
+            raise LoaderError(f"Failed to connect to PostGIS: {e}")
 
     def close(self):
         """Close the PostGIS connection."""
@@ -61,18 +61,15 @@ class USGSLoader:
             self.logger.warning(f"No records to load into {table_name}")
             return
 
-        # fallback to endpoint_config if mode not passed
         if mode is None:
             mode = self.endpoint_config.get("load_mode", "upsert")
 
         try:
             with self.conn.cursor() as cur:
                 if mode == "replace":
-                    # Full refresh: drop existing rows
                     cur.execute(f'TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE')
                     self.logger.info(f"Truncated {table_name} before reloading")
 
-                # Quote column names to avoid reserved word conflicts
                 columns = list(df.columns)
                 quoted_columns = ",".join([f'"{col}"' for col in columns])
                 values = [tuple(x) for x in df.to_numpy()]
@@ -85,7 +82,7 @@ class USGSLoader:
                 elif mode == "upsert":
                     pk_fields = self.endpoint_config.get("primary_key", [])
                     if not pk_fields:
-                        raise LoadError(f"No primary_key defined for endpoint {table_name}")
+                        raise LoaderError(f"No primary_key defined for endpoint {table_name}")
 
                     quoted_pks = ",".join([f'"{pk}"' for pk in pk_fields])
                     update_assignments = ",".join(
@@ -99,7 +96,7 @@ class USGSLoader:
                         DO UPDATE SET {update_assignments}
                     """
                 else:
-                    raise LoadError(f"Unsupported load mode: {mode}")
+                    raise LoaderError(f"Unsupported load mode: {mode}")
 
                 execute_values(cur, insert_query, values)
 
@@ -108,7 +105,7 @@ class USGSLoader:
 
         except Exception as e:
             self.conn.rollback()
-            raise LoadError(f"Failed to load data into {table_name}: {e}")
+            raise LoaderError(f"Failed to load data into {table_name}: {e}")
 
     def load_latest_file(self, endpoint: str, use_processed: bool = True) -> str:
         """
@@ -116,15 +113,12 @@ class USGSLoader:
         """
         table_name = f"public.{endpoint}"
         mode = self.endpoint_config.get("load_mode", "upsert")
+
         try:
-            # 1. Load latest transformed file into DataFrame
             df = self.data_manager.load_latest_file(endpoint, use_processed=use_processed, as_dataframe=True)
             self.logger.info(f"Loaded latest file for endpoint={endpoint}, rows={len(df)}")
 
-            # 2. Connect to PostGIS
             self.connect()
-
-            # 3. Load into PostGIS with mode
             self.load_dataframe(df, table_name, mode=mode)
 
             return f"Successfully {mode}-loaded {len(df)} records into {table_name}"
@@ -132,6 +126,7 @@ class USGSLoader:
         except Exception as e:
             msg = f"Load failed for endpoint={endpoint}: {e}"
             self.logger.error(msg)
-            raise LoadError(msg)
+            raise LoaderError(msg)
+
         finally:
             self.close()
