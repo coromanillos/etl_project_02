@@ -6,29 +6,11 @@
 ##################################################################################
 
 """
-If anyone is reading this and wondering about the approach, I think ideally I would
-have gone for a base class that supports loading to both S3 and PostgreSQL. 
-
-It makes sense to me to have these tasks share a base case just because the nature of
-the tasks are so similar, but becuase I am focusing primarily on the pipeline
-and have not done research into Azure/S3 free trials that I could incorporate into my 
-project, I have not done so.
-
-In hindsight, I would have applied the same line of thinking to the extraction class...
+Supports two loading modes:
+- replace >> full table refresh (for static reference data, e.g., monitoring locations and parameter codes)
+- upsert  >> insert new records or update existing ones (for fact tables, e.g., daily values)
 """
 
-"""
-Things to look into:
-
-- "Upserts/Idempotency"
-- Batch inserts
-- Retry logic
-- Duplciate records "Address via upserts?"
-- Slow loading (optimized with batch inserts and/or COPY)
-
-
-""" 
-import os
 import psycopg2
 import pandas as pd
 from typing import Dict
@@ -66,27 +48,64 @@ class USGSLoader:
             self.conn.close()
             self.logger.info("Closed PostGIS connection")
 
-    def load_dataframe(self, df: pd.DataFrame, table_name: str):
+    def load_dataframe(self, df: pd.DataFrame, table_name: str, mode: str = None):
         """
-        Load a Pandas DataFrame into PostGIS using COPY-like bulk insert.
-        Assumes DataFrame columns match table schema.
+        Load a Pandas DataFrame into PostGIS.
+
+        Args:
+            df (pd.DataFrame): DataFrame to load
+            table_name (str): Target PostGIS table
+            mode (str): "replace" or "upsert" (falls back to endpoint_config)
         """
         if df.empty:
             self.logger.warning(f"No records to load into {table_name}")
             return
 
+        # fallback to endpoint_config if mode not passed
+        if mode is None:
+            mode = self.endpoint_config.get("load_mode", "upsert")
+
         try:
             with self.conn.cursor() as cur:
+                if mode == "replace":
+                    # Full refresh: drop existing rows
+                    cur.execute(f'TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE')
+                    self.logger.info(f"Truncated {table_name} before reloading")
+
+                # Quote column names to avoid reserved word conflicts
                 columns = list(df.columns)
+                quoted_columns = ",".join([f'"{col}"' for col in columns])
                 values = [tuple(x) for x in df.to_numpy()]
-                insert_query = f"""
-                    INSERT INTO {table_name} ({','.join(columns)})
-                    VALUES %s
-                    ON CONFLICT DO NOTHING
-                """
+
+                if mode == "replace":
+                    insert_query = f"""
+                        INSERT INTO {table_name} ({quoted_columns})
+                        VALUES %s
+                    """
+                elif mode == "upsert":
+                    pk_fields = self.endpoint_config.get("primary_key", [])
+                    if not pk_fields:
+                        raise LoadError(f"No primary_key defined for endpoint {table_name}")
+
+                    quoted_pks = ",".join([f'"{pk}"' for pk in pk_fields])
+                    update_assignments = ",".join(
+                        [f'"{col}"=EXCLUDED."{col}"' for col in columns if col not in pk_fields]
+                    )
+
+                    insert_query = f"""
+                        INSERT INTO {table_name} ({quoted_columns})
+                        VALUES %s
+                        ON CONFLICT ({quoted_pks})
+                        DO UPDATE SET {update_assignments}
+                    """
+                else:
+                    raise LoadError(f"Unsupported load mode: {mode}")
+
                 execute_values(cur, insert_query, values)
+
             self.conn.commit()
-            self.logger.info(f"Loaded {len(df)} records into {table_name}")
+            self.logger.info(f"{mode.capitalize()} loaded {len(df)} records into {table_name}")
+
         except Exception as e:
             self.conn.rollback()
             raise LoadError(f"Failed to load data into {table_name}: {e}")
@@ -96,6 +115,7 @@ class USGSLoader:
         Orchestrates loading of the latest transformed file for a given endpoint.
         """
         table_name = f"public.{endpoint}"
+        mode = self.endpoint_config.get("load_mode", "upsert")
         try:
             # 1. Load latest transformed file into DataFrame
             df = self.data_manager.load_latest_file(endpoint, use_processed=use_processed, as_dataframe=True)
@@ -104,10 +124,10 @@ class USGSLoader:
             # 2. Connect to PostGIS
             self.connect()
 
-            # 3. Load into PostGIS
-            self.load_dataframe(df, table_name)
+            # 3. Load into PostGIS with mode
+            self.load_dataframe(df, table_name, mode=mode)
 
-            return f"Successfully loaded {len(df)} records into {table_name}"
+            return f"Successfully {mode}-loaded {len(df)} records into {table_name}"
 
         except Exception as e:
             msg = f"Load failed for endpoint={endpoint}: {e}"

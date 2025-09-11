@@ -16,6 +16,8 @@ usgs:
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
+    load_mode: "replace"                 # <-- loader cares about this
+    primary_key: ["id"]                  # <-- optional for replace, required for upsert
     extra_params: {}
     transformations:
       uses_daylight_savings: yesno_to_bool
@@ -31,6 +33,8 @@ usgs:
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "recent"
     recent_period: "P1M"
+    load_mode: "upsert"                  # <-- loader sees this and applies UPSERT
+    primary_key: ["id"]                  # <-- or ["site_no", "date"] if USGS API has those fields
     extra_params:
       sites: "01491000"
       parameterCd: "00060"
@@ -49,13 +53,14 @@ usgs:
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
+    load_mode: "replace"                 # <-- full extract each time
+    primary_key: ["id"]
     extra_params: {}
     transformations:
       geometry: flatten_geometry
     critical_fields: ["id", "geometry"]
     id_field: "id"
     consistency_rules: []
-
 
 db:
   host: "${DB_HOST:-localhost}"
