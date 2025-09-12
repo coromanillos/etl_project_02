@@ -8,14 +8,16 @@
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from src.usgs_etl_runner import run_usgs_etl
-from src.utils.config_loader import load_config  # config loader function
-from src.utils.logging_utils import setup_logger  # logger setup function
 import psycopg2
+
+from src.usgs_etl_runner import run_usgs_etl
+from src.utils.config_loader import load_config  
+from src.utils.logging_utils import setup_logger  
+
 
 # DAG default arguments
 default_args = {
-    "owner": "christopher",
+    "owner": "monthly_data_pipeline",
     "depends_on_past": False,
     "email_on_failure": True,
     "email_on_retry": False,
@@ -49,11 +51,11 @@ def check_postgis():
 def run_monitoring_locations():
     return run_usgs_etl("monitoring_locations", config, db_config, logger)
 
-def run_daily_values():
-    return run_usgs_etl("daily_values", config, db_config, logger)
-
 def run_parameter_codes():
     return run_usgs_etl("parameter_codes", config, db_config, logger)
+
+def run_daily_values():
+    return run_usgs_etl("daily_values", config, db_config, logger)
 
 # Instantiate DAG
 with DAG(
@@ -88,5 +90,7 @@ with DAG(
         python_callable=run_parameter_codes,
     )
 
-    # Set dependencies: ETL tasks run after PostGIS is healthy
-    postgis_health >> [t_monitoring_locations, t_daily_values, t_parameter_codes]
+    # Set dependencies: ETL tasks run after PostGIS is healthy, daily executes afte monitoring locations and parameter codes
+postgis_health >> [t_monitoring_locations, t_parameter_codes]
+[t_monitoring_locations, t_parameter_codes] >> t_daily_values
+
