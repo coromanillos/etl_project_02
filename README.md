@@ -314,3 +314,8 @@ The United States Geological Survey (USGS) provides water-related data through v
 ---
 
 docker exec -it airflow_postgis psql -U airflow -d airflow
+
+
+# TODO
+- usgs_etl_dag.py can be a dynamic DAG that reads endpoints from config.yaml automatically, this way I do not have to update the DAG whenever I add
+a new pipeline for an endpoint (more config driven).

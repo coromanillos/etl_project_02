@@ -1,8 +1,8 @@
-# config.yaml | base config shared by all environments (production, development, testing)
-
 paths:
   raw_data: "./data/raw_data"
   prepared_data: "./data/prepared_data"
+  archived_data: "./data/archived_data"
+  exports: "./data/exports"   
 
 logging:
   level: "${LOG_LEVEL:-INFO}"
@@ -16,8 +16,8 @@ usgs:
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
-    load_mode: "replace"                 # <-- loader cares about this
-    primary_key: ["id"]                  # <-- optional for replace, required for upsert
+    load_mode: "replace"
+    primary_key: ["id"]
     extra_params: {}
     transformations:
       uses_daylight_savings: yesno_to_bool
@@ -33,8 +33,8 @@ usgs:
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "recent"
     recent_period: "P1M"
-    load_mode: "upsert"                  # <-- loader sees this and applies UPSERT
-    primary_key: ["id"]                  # <-- or ["site_no", "date"] if USGS API has those fields
+    load_mode: "upsert"
+    primary_key: ["id"]
     extra_params:
       sites: "01491000"
       parameterCd: "00060"
@@ -53,7 +53,7 @@ usgs:
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
-    load_mode: "replace"                 # <-- full extract each time
+    load_mode: "replace"
     primary_key: ["id"]
     extra_params: {}
     transformations:
@@ -68,3 +68,11 @@ db:
   database: "${DB_NAME:-monitoring}"
   user: "${DB_USER:-monitoring_user}"
   password: "${DB_PASSWORD:-password}"
+
+exports:  
+  gis_export:
+    view_name: "unified_gis_data"
+    format: "gpkg"
+  business_export:
+    view_name: "unified_business_data"
+    format: "csv"
