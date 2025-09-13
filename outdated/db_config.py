@@ -3,6 +3,7 @@
 # Author: Christopher O. Romanillos
 # Description: SQLAlchemy ORM Schema script (refactored for nested Config)
 # Date: 08/03/25
+# I hardcoded db connection for the most part since I dont do it often, but look into it I guess...
 ###########################################
 
 from sqlalchemy import create_engine
