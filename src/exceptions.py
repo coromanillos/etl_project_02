@@ -25,3 +25,7 @@ class ValidationError(Exception):
     """Raised when validation of transformed data fails."""
     pass
 
+
+class LoaderError(Exception):
+    """Raised when loading data into the database fails."""
+    pass

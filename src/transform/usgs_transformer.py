@@ -24,11 +24,6 @@ class USGSTransformer:
             "flatten_geometry": self.flatten_geometry
         }
 
-    """ 
-    id is essential so its hardcoded, but honestly considering  
-    config driven approach like with the other fransformation functions.
-    Also considering moving the transformation map to its own script.
-    """
     def extract_properties(self, records: List[Dict], include_geometry: bool = False) -> List[Dict]:
         extracted = []
         for feature in records:
@@ -87,18 +82,6 @@ class USGSTransformer:
                     r[field] = self.transformation_funcs[func_name](r[field])
         return records
 
-    def transform_datetime_fields(self, records: List[Dict]) -> List[Dict]:
-        """
-        Transform 'time' and 'last_modified' fields into datetime objects
-        for the daily endpoint.
-        """
-        for r in records:
-            if "time" in r:
-                r["time"] = self.parse_datetime(r["time"])
-            if "last_modified" in r:
-                r["last_modified"] = self.parse_datetime(r["last_modified"])
-        return records
-
     def to_dataframe(self, records: List[Dict]) -> pd.DataFrame:
         return pd.DataFrame(records)
 
@@ -108,14 +91,14 @@ class USGSTransformer:
         include_geometry: bool = False,
         output_format: str = "csv"
     ) -> str:
+        """
+        Fully config-driven transformation of the latest raw file.
+        Applies all transformations defined in endpoint_config without hardcoded checks.
+        """
         try:
             raw_records = self.data_manager.load_latest_file(endpoint, use_processed=False)
             extracted = self.extract_properties(raw_records, include_geometry=include_geometry)
             normalized = self.normalize_fields(extracted)
-
-            # Apply endpoint-specific transformations
-            if endpoint == "daily":
-                normalized = self.transform_datetime_fields(normalized)
 
             df = self.to_dataframe(normalized)
             output_path = self.data_manager.save_dataframe(df, endpoint, use_processed=True, output_format=output_format)
