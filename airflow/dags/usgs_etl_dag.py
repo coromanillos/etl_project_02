@@ -1,7 +1,8 @@
 ################################################################################
 # Name: usgs_etl_dag.py
 # Author: Christopher O. Romanillos
-# Description: Airflow DAG to run USGS ETL, SQL view creation, and exports
+# Description: Airflow DAG to run USGS ETL, config-driven SQL view creation,
+#              and exports
 # Date: 09/13/25
 ################################################################################
 
@@ -107,22 +108,18 @@ with DAG(
         python_callable=run_daily_values,
     )
 
-    # SQL view creation tasks
-    t_create_analyst_view = PostgresOperator(
-        task_id="create_unified_for_analysts",
-        postgres_conn_id="postgis_default",
-        sql="sql/unified_for_analysts.sql",
-        autocommit=True,
-    )
+    # Execute SQL view creation tasks
+    view_tasks = []
+    for view_name, cfg in config.get("views", {}).items():
+        task = PostgresOperator(
+            task_id=f"create_{view_name}",
+            postgres_conn_id="postgis_default",
+            sql=cfg["sql_file"],
+            autocommit=True,
+        )
+        view_tasks.append(task)
 
-    t_create_gis_view = PostgresOperator(
-        task_id="create_unified_for_gis",
-        postgres_conn_id="postgis_default",
-        sql="sql/unified_for_gis.sql",
-        autocommit=True,
-    )
-
-    # Export task
+    # Export task (runs all config-driven exports)
     t_usgs_exporter = PythonOperator(
         task_id="usgs_exporter",
         python_callable=run_exports,
@@ -133,5 +130,5 @@ with DAG(
     # -----------------------------
     postgis_health >> [t_monitoring_locations, t_parameter_codes]
     [t_monitoring_locations, t_parameter_codes] >> t_daily_values
-    t_daily_values >> [t_create_analyst_view, t_create_gis_view]
-    [t_create_analyst_view, t_create_gis_view] >> t_usgs_exporter
+    t_daily_values >> view_tasks
+    view_tasks >> t_usgs_exporter

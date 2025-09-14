@@ -16,7 +16,7 @@ usgs:
     max_retries: 3
     timestamp_format: "%Y-%m-%dT%H:%M:%S"
     mode: "full"
-    load_mode: "replace"
+    load_mode: "replace"s
     primary_key: ["id"]
     extra_params: {}
     transformations:
@@ -68,6 +68,12 @@ db:
   database: "${DB_NAME:-monitoring}"
   user: "${DB_USER:-monitoring_user}"
   password: "${DB_PASSWORD:-password}"
+
+views:
+  unified_for_analysts:
+    sql_file: sql/views/unified_for_gis.sql
+  unified_for_gis:
+    sql_file: sql/views/unified_for_analysts.sql
 
 exports:  
   gis_export:
