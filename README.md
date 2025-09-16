@@ -11,12 +11,9 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 
 - [Project Goals](#project-goals)
 - [Tech Stack](#tech-stack)
-- [Pipeline Architecture](#pipeline-architecture)
 - [USGS API Endpoints](#usgs-api-endpoints)
 - [Testing](#testing)
-- [Mocked / Proprietary Replacements](#mocked--proprietary-replacements)
 - [Future Enhancements](#future-enhancements)
-- [Example Data Sources](#example-data-sources)
 - [Getting Started](#getting-started)
 - [Running the Pipeline](#running-the-pipeline)
 - [Notes](#notes)
@@ -40,45 +37,9 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - Language: Python, SQL
 - Containerization/Orchestration: Docker/Airflow
 - Data Store: PostgreSQL
-- Cloud Provider: AWS 
 - API endpoints: api.waterdata.usgs.gov
-  - Latest Continuous Values, Daily Values, Monitoring Locations, Time Series Metadata, USGS Water Data Statistics
-
----
-
-## Pipeline Architecture
-
-```plaintext
-┌──────────────────┐
-│ Public Geo APIs  │  ← (USGS)
-└────────┬─────────┘
-         ▼
-┌──────────────────┐
-│  Extract (Python)│
-└────────┬─────────┘
-         ▼
-┌────────────────────────────────────────┐
-│ Transform (GeoPandas, Shapely, Pyproj) │
-│ - CRS normalization                    │
-│ - Geometry cleanup                     │
-│ - Filtering (e.g., pipelines, roads)   │
-│ - ✅ Spatial operations (joins/buffers)│
-└────────┬───────────────────────────────┘
-         ▼
-┌────────────────────────────┐
-│ Load to PostGIS (PostgreSQL) │
-└────────┬───────────────────┘
-         ▼
-┌────────────────────────────┐
-│ REST API (FastAPI - WIP) ✅ │
-│ Serve spatial queries      │
-└────────┬───────────────────┘
-         ▼
-┌────────────────────────────┐
-│ Export to S3 as Parquet    │ (Optional)
-└────────────────────────────┘
-
-```
+  - Parameter Codes, Daily Values, Monitoring Locations
+- Dependency Management: Poetry
 
 --- 
 
@@ -115,11 +76,11 @@ observed_property_id
 
 Use Cases: Seasonal trend analysis, long-term water resource planning.
 
-3. Latest Continuous
+3. Parameter Codes
 
-Endpoint: /collections/latest-continuous/items
+Endpoint: /collections/parameter-codes/items
 
-Purpose: Real-time continuous sensor data (15–60 min intervals).
+Purpose: Parameter codes are 5-digit codes used to identify the constituent measured and the units of measure.
 
 Key Fields:
 
@@ -128,44 +89,6 @@ monitoring_location_id (FK → monitoring-locations.id)
 observed_property_id
 
 Use Cases: Flood alerts, operational dashboards, drought monitoring.
-
-4. Site Observations
-
-Endpoint: /collections/site-observations/items
-
-Purpose: Inventory of available parameters and time ranges per site.
-
-Key Fields:
-
-monitoring_location_id (FK → monitoring-locations.id)
-
-observed_property_id
-
-Use Cases: Filter sites by available measurement types before pulling data.
-
-5. Statistics
-
-Endpoint: /collections/statistics/items
-
-Purpose: Statistical summaries (percentiles, medians, counts) for observed variables.
-
-Key Fields:
-
-monitoring_location_id (FK → monitoring-locations.id)
-
-observed_property_id
-
-Use Cases: Identify extreme values, variability patterns, baseline comparisons.
-
-Example Spatial Analysis Tasks
-
-Buffer Zones: Identify infrastructure within risk zones
-
-Spatial Joins: Merge site metadata with time series measurements
-
-Filtering: Select only stations measuring specific parameters
-
-PostGIS Queries: Aggregate water levels by watershed and season
 
 ---
 
@@ -185,43 +108,9 @@ pytest tests/
 
 ---
 
-## Mocked / Proprietary Replacements
-
-| Proprietary Tool      | Open-Source Equivalent               |
-| --------------------- | ------------------------------------ |
-| ArcGIS / ArcMap       | GeoPandas + PostGIS                  |
-| FME Workbench         | Custom Python ETL scripts            |
-| ESRI Feature Services | REST APIs (FastAPI)                  |
-| ArcGIS Online         | Static hosting / S3 + Leaflet        |
-| ArcPy                 | Shapely, Pyproj (Geo-alternatives)   |
-
----
-
 ## Future Enhancements
 
-    Add support for raster layers (e.g., elevation, satellite imagery)
-
-    Integrate Leaflet or Folium-based web viewer for spatial outputs
-
-    Add schema versioning and change tracking
-
     CI/CD integration for deployment (GitHub Actions or Jenkins)
-
-    Add Dockerized FastAPI + NGINX service for live API access
-
-    Upload to AWS RDS (PostGIS) to simulate real cloud architecture
-
----
-
-## Example Data Sources
-
-    USGS National Map
-
-    OpenStreetMap Overpass API
-
-    Natural Earth
-
-    NYC OpenData
 
 ---
 
