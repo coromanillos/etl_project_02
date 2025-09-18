@@ -1,18 +1,18 @@
 ##########################################################################################
 # Name: usgs_extractor.py
 # Author: Christopher O. Romanillos
-# Description: Class-based extraction of USGS API endpoints 
-#              Refactored with **kwargs to improve config-driven flexibility
-# Date: 08/23/25 (refactor 09/17/25)
+# Description: Class-based extraction of USGS API endpoints with validation*
+# Date: 08/23/25
 ##########################################################################################
 
 from typing import List, Dict, Optional
 from urllib.parse import urlencode
 from src.exceptions import ExtractionError
-from src.file_utils import DataManager
 
 
 class USGSExtractor:
+    REQUIRED_KEYS = {"config", "endpoint_key", "logger", "data_manager"}
+
     def __init__(self, **kwargs):
         """
         Generic extractor for any USGS API endpoint.
@@ -21,31 +21,36 @@ class USGSExtractor:
           - config (dict): Full project configuration dictionary
           - endpoint_key (str): Key in config['usgs']
           - logger: Logger instance
-          - data_manager (optional): Custom DataManager
+          - data_manager: DataManager (must be provided by runner or orchestrator)
           - http_client (optional): Custom HTTP client (defaults to requests)
         """
+
+        # -------------------------------
+        # Validation block for critical fields
+        # -------------------------------
+        missing = self.REQUIRED_KEYS - kwargs.keys()
+        if missing:
+            raise ValueError(f"Missing required arguments: {missing}")
+
+        # Assign critical fields
         self.config: dict = kwargs["config"]
         self.endpoint_key: str = kwargs["endpoint_key"]
         self.logger = kwargs["logger"]
+        self.data_manager = kwargs["data_manager"]
 
+        # Assign optional fields with fallback
         self.http_client = kwargs.get("http_client") or __import__("requests")
+
+        # Derived config values
         self.endpoint_config = self.config["usgs"][self.endpoint_key]
-
-        # Initialize DataManager if not provided
-        self.data_manager = kwargs.get("data_manager") or DataManager(
-            logger=self.logger,
-            base_raw_dir=self.config["paths"]["raw_data"],
-            base_processed_dir=self.config["paths"]["prepared_data"],
-            timestamp_format=self.endpoint_config.get("timestamp_format", "%Y-%m-%dT%H:%M:%S"),
-        )
-
-        # Default file type
         self.file_type = self.endpoint_config.get("file_type", "json")
 
     ################################################
     # URL Helper
     ################################################
-    def build_url(self, offset: Optional[int] = None, limit: Optional[int] = None, **kwargs) -> str:
+    def build_url(
+        self, offset: Optional[int] = None, limit: Optional[int] = None, **kwargs
+    ) -> str:
         """
         Construct a URL for the USGS API using config-driven parameters.
         Accepts arbitrary extra query params via kwargs.
@@ -65,14 +70,18 @@ class USGSExtractor:
         """Fetch JSON data from the USGS API with retry logic"""
         for attempt in range(self.endpoint_config["max_retries"]):
             try:
-                response = self.http_client.get(url, timeout=self.endpoint_config["request_timeout"])
+                response = self.http_client.get(
+                    url, timeout=self.endpoint_config["request_timeout"]
+                )
                 response.raise_for_status()
                 return response.json()
             except Exception as e:
                 self.logger.warning(
                     f"Attempt {attempt+1}/{self.endpoint_config['max_retries']} failed for {url}: {e}"
                 )
-        raise ExtractionError(f"Failed to fetch data from {url} after {self.endpoint_config['max_retries']} retries")
+        raise ExtractionError(
+            f"Failed to fetch data from {url} after {self.endpoint_config['max_retries']} retries"
+        )
 
     ################################################
     # Fetch all records (config-driven)
