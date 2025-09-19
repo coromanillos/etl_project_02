@@ -8,14 +8,30 @@
 import shutil
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
-
+from typing import Any, Dict, Optional
+from src.exceptions import ArchiverError
 
 class USGSArchiver:
-    def __init__(self, data_manager, logger, config: dict):
-        self.data_manager = data_manager
-        self.logger = logger
-        self.archive_dir = Path(config["paths"]["archived_data"])
+    REQUIRED_KEYS = {"data_manager", "logger", "config"}
+
+    def __init__(self, **kwargs: Any):
+        # Validate required keys
+        missing = self.REQUIRED_KEYS - kwargs.keys()
+        if missing:
+            raise ValueError(f"Missing required arguments for USGSArchiver: {missing}")
+
+        self.data_manager = kwargs["data_manager"]
+        self.logger = kwargs["logger"]
+        self.config = kwargs["config"]
+
+        # Resolve archive directory
+        try:
+            self.archive_dir = Path(self.config["paths"]["archived_data"])
+        except KeyError as e:
+            raise ArchiverError(f"Invalid config for USGSArchiver: missing {e}")
+
+        # Allow extensibility with extra kwargs
+        self.__dict__.update(kwargs)
 
     def _get_timestamped_path(self, endpoint: str) -> Path:
         ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -29,6 +45,7 @@ class USGSArchiver:
         return dest_file
 
     def archive_latest_file(self, endpoint: str) -> Optional[str]:
+        """Archives the latest processed file for a given endpoint."""
         try:
             latest_file = self.data_manager.get_latest_file(endpoint, use_processed=True)
             if not latest_file:
@@ -42,7 +59,6 @@ class USGSArchiver:
             return str(archived_file)
 
         except Exception as e:
-            self.logger.error(f"Archiving failed for endpoint={endpoint}: {e}")
-            return None
-
-# Add archiver exception class
+            msg = f"Archiving failed for endpoint={endpoint}: {e}"
+            self.logger.error(msg)
+            raise ArchiverError(msg)

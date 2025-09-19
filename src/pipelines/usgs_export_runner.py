@@ -6,16 +6,19 @@
 ################################################################################
 
 from src.usgs_exporter import USGSExporter
-from typing import Dict
+from typing import Dict, Any
 from logging import Logger
 
-def run_usgs_exporter(config: Dict, logger: Logger):
+
+def run_usgs_exporter(config: Dict[str, Any], logger: Logger) -> Dict[str, str]:
     """
     Wrapper for USGSExporter:
     Accepts config and logger from the DAG for consistency.
     """
-    exporter = USGSExporter(config=config, logger=logger)
+    exporter = USGSExporter(config=config, logger=logger)  # passed as kwargs
     results = exporter.export_all()
+
     for export_name, path in results.items():
         logger.info(f"Export completed: {export_name} → {path}")
+
     return results

@@ -29,3 +29,7 @@ class ValidationError(Exception):
 class LoaderError(Exception):
     """Raised when loading data into the database fails."""
     pass
+
+class ArchiverError(Exception):
+    """Custom exception for archiver errors."""
+    pass
