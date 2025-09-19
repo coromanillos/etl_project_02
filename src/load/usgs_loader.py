@@ -2,7 +2,7 @@
 # Name: usgs_loader.py
 # Author: Christopher O. Romanillos
 # Description: Config-driven loader for USGS data into PostGIS (Docker service)
-# Date: 09/08/25
+# Date: 09/19/25
 ##################################################################################
 
 """
@@ -13,21 +13,34 @@ Supports two loading modes:
 
 import psycopg2
 import pandas as pd
-from typing import Dict
+from typing import Dict, Any
 from psycopg2.extras import execute_values
 
-from src.exceptions import LoaderError  
-from src.file_utils import DataManager
+from src.exceptions import LoaderError
 
 
 class USGSLoader:
-    def __init__(self, data_manager: DataManager, logger, db_config: Dict, endpoint_config: Dict):
-        self.data_manager = data_manager
-        self.logger = logger
-        self.db_config = db_config
-        self.endpoint_config = endpoint_config
+    REQUIRED_KEYS = {"data_manager", "logger", "db_config", "endpoint_config"}
+
+    def __init__(self, **kwargs: Any):
+        # Validate required keys
+        missing = self.REQUIRED_KEYS - kwargs.keys()
+        if missing:
+            raise ValueError(f"Missing required arguments for USGSLoader: {missing}")
+
+        self.data_manager = kwargs["data_manager"]
+        self.logger = kwargs["logger"]
+        self.db_config = kwargs["db_config"]
+        self.endpoint_config = kwargs["endpoint_config"]
+
+        # Allow extensibility with extra kwargs
+        self.__dict__.update(kwargs)
+
         self.conn = None
 
+    ################################################
+    # Connection Management
+    ################################################
     def connect(self):
         """Establish a connection to PostGIS using psycopg2."""
         try:
@@ -48,6 +61,9 @@ class USGSLoader:
             self.conn.close()
             self.logger.info("Closed PostGIS connection")
 
+    ################################################
+    # Core Loader Logic
+    ################################################
     def load_dataframe(self, df: pd.DataFrame, table_name: str, mode: str = None):
         """
         Load a Pandas DataFrame into PostGIS.
@@ -107,6 +123,9 @@ class USGSLoader:
             self.conn.rollback()
             raise LoaderError(f"Failed to load data into {table_name}: {e}")
 
+    ################################################
+    # Orchestrator
+    ################################################
     def load_latest_file(self, endpoint: str, use_processed: bool = True) -> str:
         """
         Orchestrates loading of the latest transformed file for a given endpoint.

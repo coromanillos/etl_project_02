@@ -11,29 +11,43 @@ import pandas as pd
 from sqlalchemy import create_engine
 from pathlib import Path
 from datetime import datetime
-from typing import Dict
+from typing import Dict, Any
+
 from src.logging_config import configure_logger
 
 
 class USGSExporter:
-    def __init__(self, config: Dict, logger=None):
+    REQUIRED_KEYS = {"config", "logger"}
+
+    def __init__(self, **kwargs: Any):
         """
         Initialize the exporter with full config dict.
+        Expected kwargs:
+          - config (dict): Full project configuration dictionary
+          - logger: Logger instance
         """
+        # Validate required keys
+        missing = self.REQUIRED_KEYS - kwargs.keys()
+        if missing:
+            raise ValueError(f"Missing required arguments for USGSExporter: {missing}")
+
+        self.config: Dict = kwargs["config"]
+        self.logger = kwargs["logger"]
+
         # Database engine
-        db_config = config.get("db", {})
+        db_config = self.config.get("db", {})
         db_url = self._make_db_url(db_config)
         self.engine = create_engine(db_url)
 
         # Export directory
-        self.export_dir = Path(config["paths"]["exports"])
+        self.export_dir = Path(self.config["paths"]["exports"])
         self.export_dir.mkdir(parents=True, exist_ok=True)
 
         # Export config
-        self.export_config = config.get("exports", {})
+        self.export_config = self.config.get("exports", {})
 
-        # Logger
-        self.logger = logger or configure_logger(config.get("logging"))
+        # Allow extensibility with extra kwargs
+        self.__dict__.update(kwargs)
 
     def _make_db_url(self, db_config: Dict) -> str:
         """
@@ -67,28 +81,4 @@ class USGSExporter:
                 else:
                     raise ValueError(f"Unsupported export format: {fmt}")
 
-                results[export_name] = out_path
-                self.logger.info(f"Export {export_name} → {out_path}")
-
-            except Exception as e:
-                self.logger.error(f"Export {export_name} failed: {e}")
-                raise
-        return results
-
-    def _export_gis(self, view_name: str) -> Path:
-        """
-        Export PostGIS view to GeoPackage.
-        """
-        gdf = gpd.read_postgis(f"SELECT * FROM {view_name}", self.engine, geom_col="geometry")
-        out_path = self._timestamped_path(view_name, ".gpkg")
-        gdf.to_file(out_path, driver="GPKG")
-        return out_path
-
-    def _export_business(self, view_name: str) -> Path:
-        """
-        Export PostGIS view to CSV.
-        """
-        df = pd.read_sql(f"SELECT * FROM {view_name}", self.engine)
-        out_path = self._timestamped_path(view_name, ".csv")
-        df.to_csv(out_path, index=False)
-        return out_path
+                results[expor]()

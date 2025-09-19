@@ -12,7 +12,6 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - [Project Goals](#project-goals)
 - [Tech Stack](#tech-stack)
 - [USGS API Endpoints](#usgs-api-endpoints)
-- [Testing](#testing)
 - [Future Enhancements](#future-enhancements)
 - [Getting Started](#getting-started)
 - [Running the Pipeline](#running-the-pipeline)
@@ -92,22 +91,6 @@ Use Cases: Flood alerts, operational dashboards, drought monitoring.
 
 ---
 
-## Testing
-
-Tests are written with pytest and include both unit, integration and e2e coverage:
-
-pytest tests/
-
-    Validate schema mappings and geometry correctness
-
-    Test API fallback behavior
-
-    Integration test from extract → load using dummy data
-
-    (Planned) API response tests and spatial query validation
-
----
-
 ## Future Enhancements
 
     CI/CD integration for deployment (GitHub Actions or Jenkins)
@@ -132,50 +115,13 @@ poetry shell
 
 ---
 
-## Notes
-
-## USGS APIs (Water Infrastructure & Monitoring)
-
-The United States Geological Survey (USGS) provides water-related data through various APIs:
-
-- **Monitoring Locations API**  
-  Identifies active water monitoring stations. Useful for mapping infrastructure like pump stations and treatment plants in specific watersheds.
-
-- **Latest Continuous Values API**  
-  Provides live water condition data (e.g., streamflow, gage height). Ideal for real-time alerts on flooding, droughts, or infrastructure stress.
-
-- **Daily Values API**  
-  Delivers historical daily measurements. Supports trend analysis, regulatory reporting, and modeling seasonal or long-term changes in water behavior.
-
-- **Time Series Metadata API**  
-  Lists available data types and quality before extraction. Helps determine what data streams are available and valid for use.
-
-- **Water Quality Portal / USGS Samples API**  
-  Supplies detailed water quality sample data. Supports environmental compliance, public health evaluations, and source water analysis.
-
-- **Real-Time Flood Impacts (RTFI) API**  
-  Offers GIS-ready flood impact overlays. Useful for mapping risk zones and planning resilient infrastructure.
-
-
-- OpenStreetMap
-
-- Natural Earth
-
----
-
-# More notes:
-    - Cloud first approach for all DAG ETL scripts (obviously) 
-    - Data should flow through memory objects (dicts, lists, ORM objects etc.)
-    - Writing should happen at the end, directly into the database
-    - This approach prevents I/O, making pipeline clean, fast and cloud native.
----
-
 # Testing:
 
   >> APP_ENV=test poetry run pytest
   
   pyproject.toml # Poetry dependencies manager (runtime + dev)
   poetry.lock # Locked versions for reproducibility
+
 ---
 
 # Notes:
