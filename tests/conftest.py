@@ -1,4 +1,5 @@
 # tests/conftest.py
+
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -7,6 +8,7 @@ from src.usgs_archiver import USGSArchiver
 from src.usgs_exporter import USGSExporter
 from src.usgs_extractor import USGSExtractor
 from src.usgs_loader import USGSLoader
+from src.usgs_transformer import USGSTransformer
 
 # ------------------------
 # Common Fixtures
@@ -21,6 +23,11 @@ def mock_logger():
 def tmp_archive_dir(tmp_path):
     """Temporary directory for archiver tests."""
     return tmp_path / "archive"
+
+@pytest.fixture
+def mock_data_manager():
+    """Reusable mock data manager."""
+    return MagicMock()
 
 # ------------------------
 # USGS Archiver Fixtures
@@ -89,11 +96,6 @@ def base_extractor_config():
     }
 
 @pytest.fixture
-def mock_data_manager():
-    """Reusable mock data manager."""
-    return MagicMock()
-
-@pytest.fixture
 def extractor(base_extractor_config, mock_logger, mock_data_manager):
     """Returns a USGSExtractor instance with mocked HTTP client."""
     return USGSExtractor(
@@ -135,3 +137,26 @@ def loader_factory(mock_loader_config, mock_logger, mock_data_manager):
             endpoint_config=mock_loader_config["endpoint_config"],
         )
     return _make_loader
+
+# ------------------------
+# USGS Transformer Fixtures
+# ------------------------
+
+@pytest.fixture
+def base_transformer_config():
+    return {
+        "transformations": {
+            "active": "yesno_to_bool",
+            "created_at": "parse_datetime",
+            "geometry": "flatten_geometry",
+        }
+    }
+
+@pytest.fixture
+def transformer(base_transformer_config, mock_logger, mock_data_manager):
+    """Returns a USGSTransformer with base config."""
+    return USGSTransformer(
+        data_manager=mock_data_manager,
+        logger=mock_logger,
+        endpoint_config=base_transformer_config,
+    )

@@ -2,61 +2,25 @@
 
 import pytest
 from unittest.mock import MagicMock
+
 from src.usgs_extractor import USGSExtractor
 from src.exceptions import ExtractionError
 
 
-@pytest.fixture
-def base_config():
-    return {
-        "usgs": {
-            "stations": {
-                "base_url": "https://example.com/api?",
-                "max_retries": 2,
-                "request_timeout": 1,
-                "limit": 2,
-                "mode": "full",
-                "extra_params": {"format": "json"},
-            }
-        }
-    }
-
-
-@pytest.fixture
-def mock_logger():
-    return MagicMock()
-
-
-@pytest.fixture
-def mock_data_manager():
-    return MagicMock()
-
-
-@pytest.fixture
-def extractor(base_config, mock_logger, mock_data_manager):
-    return USGSExtractor(
-        config=base_config,
-        endpoint_key="stations",
-        logger=mock_logger,
-        data_manager=mock_data_manager,
-        http_client=MagicMock(),
-    )
-
-
-def test_missing_required_keys_raises(base_config, mock_logger, mock_data_manager):
+def test_missing_required_keys_raises(base_extractor_config, mock_logger, mock_data_manager):
     """Extractor should raise if critical kwargs are missing."""
     with pytest.raises(ValueError) as excinfo:
-        USGSExtractor(config=base_config, endpoint_key="stations")
+        USGSExtractor(config=base_extractor_config, endpoint_key="stations")
     assert "Missing required arguments" in str(excinfo.value)
 
 
-def test_build_url_adds_limit_and_offset(extractor, base_config):
+def test_build_url_adds_limit_and_offset(extractor, base_extractor_config):
     """build_url should correctly add query params."""
     url = extractor.build_url(offset=10, limit=5, custom="yes")
     assert "offset=10" in url
     assert "limit=5" in url
     assert "custom=yes" in url
-    assert url.startswith(base_config["usgs"]["stations"]["base_url"])
+    assert url.startswith(base_extractor_config["usgs"]["stations"]["base_url"])
 
 
 def test_fetch_with_retries_success(extractor):
@@ -84,7 +48,6 @@ def test_fetch_with_retries_exhausts_retries(extractor):
 
 def test_fetch_all_records_full_mode(extractor, mock_data_manager):
     """fetch_all_records should paginate until no features remain."""
-    # First call returns 2 features, second call returns empty
     extractor.fetch_with_retries = MagicMock(
         side_effect=[
             {"features": [{"id": 1}, {"id": 2}]},

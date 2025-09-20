@@ -7,41 +7,10 @@ from unittest.mock import MagicMock, patch
 from src.usgs_exporter import USGSExporter
 
 
-@pytest.fixture
-def base_config(tmp_path):
-    """Minimal working config with paths and exports defined."""
-    return {
-        "db": {
-            "user": "test_user",
-            "password": "test_pass",
-            "host": "localhost",
-            "port": 5432,
-            "database": "test_db",
-        },
-        "paths": {"exports": str(tmp_path)},
-        "exports": {
-            "gis_export": {"view_name": "test_view", "format": "gpkg"},
-            "biz_export": {"view_name": "test_view", "format": "csv"},
-        },
-    }
-
-
-@pytest.fixture
-def mock_logger():
-    return MagicMock()
-
-
-@pytest.fixture
-def exporter(base_config, mock_logger):
-    with patch("src.usgs_exporter.create_engine") as mock_engine:
-        mock_engine.return_value = MagicMock()
-        return USGSExporter(config=base_config, logger=mock_logger)
-
-
-def test_missing_required_keys_raises(base_config, mock_logger):
+def test_missing_required_keys_raises(base_export_config):
     """Constructor should raise ValueError if required kwargs are missing."""
     with pytest.raises(ValueError) as excinfo:
-        USGSExporter(config=base_config)  # missing logger
+        USGSExporter(config=base_export_config)  # missing logger
     assert "Missing required arguments" in str(excinfo.value)
 
 
