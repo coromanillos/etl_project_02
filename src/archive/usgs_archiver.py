@@ -2,6 +2,7 @@
 # Name: usgs_archiver.py
 # Author: Christopher O. Romanillos
 # Description: Archives transformed USGS files into timestamped directories
+#   Exists as a substiution for cloud integration. 
 # Date: 09/12/25
 ##################################################################################
 
@@ -9,6 +10,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, Optional
+
 from src.exceptions import ArchiverError
 
 class USGSArchiver:
