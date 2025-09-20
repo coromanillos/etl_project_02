@@ -15,7 +15,7 @@ def run_usgs_exporter(config: Dict[str, Any], logger: Logger) -> Dict[str, str]:
     Wrapper for USGSExporter:
     Accepts config and logger from the DAG for consistency.
     """
-    exporter = USGSExporter(config=config, logger=logger)  # passed as kwargs
+    exporter = USGSExporter(config=config, logger=logger)  
     results = exporter.export_all()
 
     for export_name, path in results.items():
