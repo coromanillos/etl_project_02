@@ -1,32 +1,40 @@
 # config-test.yaml | overrides for testing environment
 
+paths:
+  raw_data: "./tests/_data/raw_data"
+  prepared_data: "./tests/_data/prepared_data"
+  archived_data: "./tests/_data/archived_data"
+  exports: "./tests/_data/exports"
+
 logging:
-  version: 1
-  disable_existing_loggers: false
-  formatters:
-    json:
-      class: pythonjsonlogger.jsonlogger.JsonFormatter
-      format: '{"time": "%(asctime)s", "level": "%(levelname)s", "name": "%(name)s", "message": "%(message)s"}'
-
-  handlers:
-    console:
-      class: logging.StreamHandler
-      formatter: json
-      level: DEBUG
-      stream: ext://sys.stdout
-
-  root:
-    level: DEBUG
-    handlers: [console]
+  level: "DEBUG"
+  format: "json"
 
 usgs:
-  monitoring_locations_url: "https://labs.waterdata.usgs.gov/api/collections/monitoring-locations/items?f=json"
-  request_timeout: 5  # faster timeout for tests
-  max_retries: 1
+  stations:
+    base_url: "https://fake-api.com/api?"
+    limit: 5
+    request_timeout: 1
+    max_retries: 1
+    timestamp_format: "%Y-%m-%dT%H:%M:%S"
+    mode: "test"
+    load_mode: "replace"
+    primary_key: ["id"]
+    extra_params: {}
+    transformations:
+      geometry: flatten_geometry
+    critical_fields: ["id"]
+    id_field: "id"
+    consistency_rules: []
 
 db:
-  user: "test_user"
-  password: "test_password"
   host: "localhost"
   port: 5432
-  database: "test_monitoring"
+  database: "testdb"
+  user: "test_user"
+  password: "test_pass"
+
+exports:
+  test_export:
+    view_name: "stations_test"
+    format: "csv"

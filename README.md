@@ -12,10 +12,10 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 - [Project Goals](#project-goals)
 - [Tech Stack](#tech-stack)
 - [USGS API Endpoints](#usgs-api-endpoints)
-- [Future Enhancements](#future-enhancements)
 - [Getting Started](#getting-started)
 - [Running the Pipeline](#running-the-pipeline)
 - [Notes](#notes)
+- [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -91,12 +91,6 @@ Use Cases: Flood alerts, operational dashboards, drought monitoring.
 
 ---
 
-## Future Enhancements
-
-    CI/CD integration for deployment (GitHub Actions or Jenkins)
-
----
-
 ## Getting Started
 
 This project uses Poetry to manage dependencies and virtual environments. Poetry ensures that everyone working on this project installs exactly the same package versions, avoiding “works on my machine” issues and simplifying setup.
@@ -164,3 +158,12 @@ a new pipeline for an endpoint (more config driven).
 - Log Assertions ensure that tasks handled by code is observable, correctly logging 
 success or failure etc.
 - conftest.py for repeated fixtures.
+
+---
+
+## Future Enhancements
+
+  - CI/CD integration for deployment, using GitHub Actions. 
+  - break up central conftest into multiple conftests, for each test dir/
+  
+  - Integration testing: conftest loads config-test.yaml, mocks on the API, runs the rest of pipeline end to end.  This prevents slow/unreliable reliance on real APIs.
