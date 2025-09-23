@@ -1,47 +1,82 @@
-name: CI
+name: ETL CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [ "main" ]       # Run CI/CD on pushes to main
   pull_request:
-    branches: [main]
+    branches: [ "main" ]       # Run checks on PRs into main
+  workflow_dispatch:            # Allow manual runs
+  schedule:
+    - cron: "0 9 * * *"        # (Optional) run every day at 9 AM UTC
 
 jobs:
+  # ---------------------------
+  # Continuous Integration (CI)
+  # ---------------------------
   test:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_pass
-        ports:
-          - 5432:5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports: [ "5432:5432" ]
         options: >-
-          --health-cmd "pg_isready -U test_user"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pyyaml psycopg2-binary
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Run integration tests
-      env:
-        DB_HOST: localhost
-        DB_NAME: testdb
-        DB_USER: test_user
-        DB_PASSWORD: test_pass
-      run: |
-        pytest tests/integration --maxfail=1 --disable-warnings -v
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/test_db
+        run: pytest -v
+
+  # ---------------------------
+  # Continuous Deployment (CD)
+  # ---------------------------
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'   # Only deploy from main branch
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Deploy to Server (via SSH)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~/etl_project
+            git pull origin main
+            pip install -r requirements.txt
+            systemctl restart etl_service
