@@ -44,47 +44,36 @@ The pipeline is designed for **modular deployment** via Docker Compose and inclu
 
 ## USGS API Endpoints
 
-This project integrates five key endpoints from the USGS Water Data API.
+This project integrates three key endpoints from the USGS Water Data API.
 They share common identifiers (e.g., id, monitoring_location_id, agency_code) that enable table joins for advanced analysis.
 
-1. Monitoring Locations
-
+  1. Monitoring Locations
 Endpoint: /collections/monitoring-locations/items
-
 Purpose: Master list of water monitoring stations with metadata (coordinates, agency, site type, HUC).
 
-Key Fields:
-
+  Key Fields:
 id (Primary Key)
-
 agency_code
-
 Use Cases: Base reference table for joins with measurement datasets.
 
 2. Daily
 
-Endpoint: /collections/daily/items
-
+  Endpoint: /collections/daily/items
 Purpose: Historical daily aggregated values (streamflow, gage height, temperature).
 
-Key Fields:
-
+  Key Fields:
 monitoring_location_id (FK → monitoring-locations.id)
-
 observed_property_id
 
 Use Cases: Seasonal trend analysis, long-term water resource planning.
 
 3. Parameter Codes
 
-Endpoint: /collections/parameter-codes/items
-
+  Endpoint: /collections/parameter-codes/items
 Purpose: Parameter codes are 5-digit codes used to identify the constituent measured and the units of measure.
 
-Key Fields:
-
+  Key Fields:
 monitoring_location_id (FK → monitoring-locations.id)
-
 observed_property_id
 
 Use Cases: Flood alerts, operational dashboards, drought monitoring.
