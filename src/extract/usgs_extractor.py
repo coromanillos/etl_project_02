@@ -25,9 +25,9 @@ class USGSExtractor:
           - http_client (optional): Custom HTTP client (defaults to requests)
         """
 
-        # -------------------------------
+        ######################################
         # Validation block for critical fields
-        # -------------------------------
+        ######################################
         missing = self.REQUIRED_KEYS - kwargs.keys()
         if missing:
             raise ValueError(f"Missing required arguments: {missing}")
