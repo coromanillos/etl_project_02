@@ -6,8 +6,8 @@ on:
   pull_request:
     branches: [ "main" ]       # Run checks on PRs into main
   workflow_dispatch:            # Allow manual runs
-  schedule:
-    - cron: "0 9 * * *"        # (Optional) run every day at 9 AM UTC
+#  schedule:
+#    - cron: "0 9 * * *"        # run every day at 9 AM UTC
 
 jobs:
   # ---------------------------
